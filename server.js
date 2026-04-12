@@ -24,9 +24,9 @@ const xero = new XeroClient({
     'accounting.transactions.read',
     'accounting.contacts.read',
     'accounting.reports.read',
-    'payroll.employees.read',
-    'payroll.payruns.read',
-    'payroll.payslip.read',
+    
+    
+    
     'offline_access'
   ]
 });
