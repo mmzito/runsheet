@@ -15,18 +15,25 @@ app.use(session({
 }));
 
 // ── XERO CLIENT ────────────────────────────────────────────────────────────
-const xero = new XeroClient({
+const XERO_CONFIG = {
   clientId: process.env.XERO_CLIENT_ID,
   clientSecret: process.env.XERO_CLIENT_SECRET,
   redirectUris: [process.env.XERO_REDIRECT_URI || 'http://localhost:3000/callback'],
-  scopes: [
-    'openid', 'profile', 'email', 'offline_access',
-    'accounting.transactions.read',
-    'accounting.contacts.read',
-    'accounting.reports.read',
-    'accounting.settings.read'
-  ]
-});
+  scopes: 'openid profile email offline_access accounting.transactions.read accounting.contacts.read accounting.reports.read accounting.settings.read'.split(' ')
+};
+
+function createXeroClient(state) {
+  return new XeroClient({ ...XERO_CONFIG, state: state || 'runsheet_auth' });
+}
+
+// Session-stored xero client (reconstructed per request)
+async function getXeroClient(req) {
+  const xero = createXeroClient();
+  if (req.session.tokenSet) {
+    await xero.setTokenSet(req.session.tokenSet);
+  }
+  return xero;
+}
 
 // ── AUTH MIDDLEWARE ────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
@@ -84,30 +91,37 @@ p{font-size:14px;color:#5A6672;line-height:1.6;margin-bottom:28px}
 // OAuth — redirect to Xero
 app.get('/auth', async (req, res) => {
   try {
+    const state = 'rs_' + Math.random().toString(36).substring(2, 15);
+    req.session.xeroState = state;
+    const xero = createXeroClient(state);
     const consentUrl = await xero.buildConsentUrl();
-    req.session.state = xero.state;
+    console.log('Redirecting to Xero auth...');
     res.redirect(consentUrl);
   } catch (err) {
-    console.error('Auth error:', err);
-    res.status(500).send('Failed to build Xero auth URL. Check your client credentials.');
+    console.error('Auth error:', err.message);
+    res.status(500).send('Failed to build Xero auth URL: ' + err.message);
   }
 });
 
 // OAuth callback
 app.get('/callback', async (req, res) => {
   try {
+    console.log('Callback received:', req.url.substring(0, 100));
+    const state = req.session.xeroState || 'runsheet_auth';
+    const xero = createXeroClient(state);
     const tokenSet = await xero.apiCallback(req.url);
     await xero.updateTenants();
     req.session.tokenSet = tokenSet;
     req.session.tenants = xero.tenants;
+    console.log('Tenants:', xero.tenants.map(t => t.tenantName));
     if (xero.tenants.length === 1) {
       req.session.activeTenantId = xero.tenants[0].tenantId;
       req.session.activeTenantName = xero.tenants[0].tenantName;
     }
     res.redirect('/app');
   } catch (err) {
-    console.error('Callback error:', err);
-    res.redirect('/connect?error=auth_failed');
+    console.error('Callback error:', err.message);
+    res.redirect('/connect?error=' + encodeURIComponent(err.message));
   }
 });
 
@@ -135,6 +149,7 @@ app.get('/select-org/:tenantId', requireAuth, (req, res) => {
   if (!tenant) return res.redirect('/select-org');
   req.session.activeTenantId = tenant.tenantId;
   req.session.activeTenantName = tenant.tenantName;
+  console.log('Active tenant set:', tenant.tenantName);
   res.redirect('/app');
 });
 
@@ -149,17 +164,19 @@ app.get('/disconnect', (req, res) => {
 // Refresh token helper
 async function refreshIfNeeded(req) {
   if (!req.session.tokenSet) throw new Error('Not authenticated');
-  await xero.setTokenSet(req.session.tokenSet);
-  if (xero.readTokenSet().expires_at && Date.now() > (xero.readTokenSet().expires_at - 60) * 1000) {
+  const xero = await getXeroClient(req);
+  const tokenSet = xero.readTokenSet();
+  if (tokenSet && tokenSet.expires_at && Date.now() > (tokenSet.expires_at - 60) * 1000) {
     const newToken = await xero.refreshToken();
     req.session.tokenSet = newToken;
   }
+  return xero;
 }
 
 // GET /api/invoices
 app.get('/api/invoices', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
     const response = await xero.accountingApi.getInvoices(
       tenantId, undefined, undefined, undefined, undefined,
@@ -188,7 +205,7 @@ app.get('/api/invoices', requireAuth, async (req, res) => {
 // GET /api/bills
 app.get('/api/bills', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
     const response = await xero.accountingApi.getInvoices(
       tenantId, undefined, undefined, undefined, undefined,
@@ -215,7 +232,7 @@ app.get('/api/bills', requireAuth, async (req, res) => {
 // GET /api/bank-balance
 app.get('/api/bank-balance', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
     const response = await xero.accountingApi.getAccounts(
       tenantId, undefined, 'Type=="BANK"'
@@ -237,7 +254,7 @@ app.get('/api/bank-balance', requireAuth, async (req, res) => {
 // GET /api/payroll
 app.get('/api/payroll', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
     // Get recent pay runs
     const response = await xero.payrollAUApi.getPayRuns(tenantId);
@@ -265,7 +282,7 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
 // GET /api/organisation
 app.get('/api/organisation', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
     const response = await xero.accountingApi.getOrganisations(tenantId);
     const org = response.body.organisations?.[0];
@@ -285,7 +302,7 @@ app.get('/api/organisation', requireAuth, async (req, res) => {
 // GET /api/summary — all data in one call for the forecast
 app.get('/api/summary', requireAuth, async (req, res) => {
   try {
-    await refreshIfNeeded(req);
+    const xero = await refreshIfNeeded(req);
     const tenantId = req.session.activeTenantId;
 
     // Parallel fetch
