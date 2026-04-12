@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: runsheet
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: XERO_CLIENT_ID
+        sync: false
+      - key: XERO_CLIENT_SECRET
+        sync: false
+      - key: XERO_REDIRECT_URI
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
