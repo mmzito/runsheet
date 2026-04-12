@@ -20,14 +20,11 @@ const xero = new XeroClient({
   clientSecret: process.env.XERO_CLIENT_SECRET,
   redirectUris: [process.env.XERO_REDIRECT_URI || 'http://localhost:3000/callback'],
   scopes: [
-    'openid', 'profile', 'email',
+    'openid', 'profile', 'email', 'offline_access',
     'accounting.transactions.read',
     'accounting.contacts.read',
     'accounting.reports.read',
-    
-    
-    
-    'offline_access'
+    'accounting.settings.read'
   ]
 });
 
