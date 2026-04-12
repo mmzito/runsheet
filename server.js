@@ -1,17 +1,22 @@
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const { Issuer, generators } = require('openid-client');
 const https = require('https');
 const app = express();
 
+// Trust proxy for Render (HTTPS)
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
+  store: new FileStore({ path: '/tmp/sessions', ttl: 3600, retries: 0, logFn: ()=>{} }),
   secret: process.env.SESSION_SECRET || 'runsheet-dev-secret-change-in-prod',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 8 * 60 * 60 * 1000 }
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
 }));
 
 const CLIENT_ID = process.env.XERO_CLIENT_ID;

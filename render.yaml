@@ -13,3 +13,5 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      - key: NODE_ENV
+        value: production
