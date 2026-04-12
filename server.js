@@ -65,7 +65,7 @@ h2{font-size:18px;color:#0F1F12;margin-bottom:10px}p{font-size:13px;color:#5A667
 .sec{font-size:11px;color:#A0ADB8;margin-top:16px}</style></head>
 <body><div class="card">
   <div class="logo">Run<span>sheet</span></div>
-  <div class="tagline">52-Week Cashflow Forecasting</div>
+  <div class="tagline">Stop surviving the week. Start planning the year.</div>
   ${err}
   <h2>Connect your Xero account</h2>
   <p>Runsheet reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
