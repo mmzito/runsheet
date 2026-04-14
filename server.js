@@ -22,7 +22,7 @@ app.use(session({
 const CLIENT_ID = process.env.XERO_CLIENT_ID;
 const CLIENT_SECRET = process.env.XERO_CLIENT_SECRET;
 const REDIRECT_URI = process.env.XERO_REDIRECT_URI || 'http://localhost:3000/callback';
-const SCOPES = 'openid profile email';
+const SCOPES = 'openid profile email offline_access';
 
 let xeroClient = null;
 
@@ -112,10 +112,16 @@ app.get('/callback', async (req, res) => {
     req.session.oauthState = null;
 
     // Get tenants
-    const tenants = await getConnectedTenants(tokenSet.access_token);
+    let tenants = [];
+    try {
+      tenants = await getConnectedTenants(tokenSet.access_token);
+      if (!Array.isArray(tenants)) { console.error('Tenants response:', JSON.stringify(tenants)); tenants = []; }
+    } catch(tenantErr) {
+      console.error('Tenant fetch failed:', tenantErr.message);
+    }
     req.session.tenants = tenants;
-    console.log('Tenants:', tenants.map(t => t.tenantName));
-    if (tenants.length === 1) {
+    console.log('Tenants:', tenants.length, tenants.map(t => t.tenantName));
+    if (tenants.length >= 1) {
       req.session.activeTenantId = tenants[0].tenantId;
       req.session.activeTenantName = tenants[0].tenantName;
     }
@@ -219,6 +225,7 @@ app.get('/api/summary', requireAuth, async (req, res) => {
   try {
     const token = await getAccessToken(req);
     const tenantId = req.session.activeTenantId;
+    if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected. Please disconnect and reconnect with Xero.', needsReconnect: true });
     const [invData, billData] = await Promise.all([
       xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCREC&SummaryOnly=true', token, tenantId),
       xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCPAY&SummaryOnly=true', token, tenantId)
