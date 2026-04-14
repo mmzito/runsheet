@@ -22,7 +22,7 @@ app.use(session({
 const CLIENT_ID = process.env.XERO_CLIENT_ID;
 const CLIENT_SECRET = process.env.XERO_CLIENT_SECRET;
 const REDIRECT_URI = process.env.XERO_REDIRECT_URI || 'http://localhost:3000/callback';
-const SCOPES = 'openid profile email offline_access accounting.transactions accounting.contacts accounting.settings';
+const SCOPES = 'openid profile email offline_access accounting.transactions.read accounting.contacts.read accounting.settings.read';
 
 let xeroClient = null;
 
