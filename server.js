@@ -280,6 +280,48 @@ app.get('/api/bills', requireAuth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/ato', requireAuth, async (req, res) => {
+  try {
+    const token = await getAccessToken(req);
+    const tenantId = req.session.activeTenantId;
+    if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected.', needsReconnect: true });
+    const data = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED,PAID', token, tenantId);
+    const allInvs = data.Invoices || [];
+    // Group by ATO quarter (Australian FY: Jul-Jun)
+    function getATOQuarter(dateStr) {
+      const d = new Date(dateStr);
+      const m = d.getMonth(); // 0-indexed
+      const y = d.getFullYear();
+      if (m >= 6 && m <= 8) return { q: 'Q1', fy: y + '-' + (y+1), start: y+'-07-01', end: y+'-09-30', dueAgent: y+'-10-28', dueNonAgent: y+'-10-28' };
+      if (m >= 9 && m <= 11) return { q: 'Q2', fy: y + '-' + (y+1), start: y+'-10-01', end: y+'-12-31', dueAgent: (y+1)+'-02-28', dueNonAgent: (y+1)+'-02-28' };
+      if (m >= 0 && m <= 2) return { q: 'Q3', fy: (y-1) + '-' + y, start: y+'-01-01', end: y+'-03-31', dueAgent: y+'-05-23', dueNonAgent: y+'-04-28' };
+      return { q: 'Q4', fy: (y-1) + '-' + y, start: y+'-04-01', end: y+'-06-30', dueAgent: y+'-07-28', dueNonAgent: y+'-07-28' };
+    }
+    const quarters = {};
+    allInvs.forEach(inv => {
+      const dateStr = inv.DateString || inv.Date;
+      if (!dateStr) return;
+      const qInfo = getATOQuarter(dateStr);
+      const key = qInfo.fy + '-' + qInfo.q;
+      if (!quarters[key]) quarters[key] = { ...qInfo, key, gstCollected: 0, gstPaid: 0, invoiceCount: 0, billCount: 0 };
+      const taxAmt = parseFloat(inv.TaxAmount) || 0;
+      if (inv.Type === 'ACCREC') { quarters[key].gstCollected += taxAmt; quarters[key].invoiceCount++; }
+      else if (inv.Type === 'ACCPAY') { quarters[key].gstPaid += taxAmt; quarters[key].billCount++; }
+    });
+    // Sort by period start
+    const sorted = Object.values(quarters).sort((a, b) => a.start.localeCompare(b.start));
+    sorted.forEach(q => {
+      q.gstCollected = Math.round(q.gstCollected * 100) / 100;
+      q.gstPaid = Math.round(q.gstPaid * 100) / 100;
+      q.netGST = Math.round((q.gstCollected - q.gstPaid) * 100) / 100;
+    });
+    res.json({ quarters: sorted });
+  } catch(e) {
+    console.error('ATO error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/payroll', requireAuth, async (req, res) => {
   try {
     const token = await getAccessToken(req);
@@ -437,6 +479,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
     <button class="nav-btn" onclick="nav('invoices')"><span>📥</span> Invoices</button>
     <div class="sidebar-label">Money Out</div>
     <button class="nav-btn" onclick="nav('bills')"><span>📤</span> Bills</button>
+    <button class="nav-btn" onclick="nav('ato')"><span>🏛️</span> ATO Obligations</button>
     <button class="nav-btn" onclick="nav('payroll')"><span>💼</span> Payroll</button>
     <div class="sidebar-label">Planning</div>
     <button class="nav-btn" onclick="nav('jobs')"><span>🏗️</span> Job Pipeline</button>
@@ -501,6 +544,37 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         </table></div>
       </div>
     </div>
+    <div class="section" id="section-ato">
+      <div class="page-title">ATO Obligations</div>
+      <div class="page-sub">BAS/GST quarters based on your Xero invoices (Australian Financial Year)</div>
+      <div class="stats" id="ato-stats"><div class="loading">Loading ATO data...</div></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-hdr">
+          <span class="card-title">Settings</span>
+        </div>
+        <div class="card-body" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+          <div class="form-field" style="min-width:180px">
+            <label>ATO Opening Balance ($)</label>
+            <input type="number" id="ato-opening" step="0.01" placeholder="0.00" onchange="saveATOSetting('rs_ato_opening', this.value); renderATO()">
+          </div>
+          <div class="form-field" style="min-width:180px">
+            <label>BAS Lodgement</label>
+            <select id="ato-agent-toggle" onchange="saveATOSetting('rs_ato_agent', this.value); renderATO()">
+              <option value="agent">BAS Agent (extended dates)</option>
+              <option value="self">Self-lodged</option>
+            </select>
+          </div>
+          <button class="btn btn-outline" onclick="loadATO()" style="margin-top:18px">🔄 Refresh from Xero</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">BAS Quarters</span></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Quarter</th><th>Period</th><th>GST Collected</th><th>GST Paid</th><th>Net GST</th><th>PAYG W/H</th><th>PAYG Instalment</th><th>BAS Payable</th><th>Due Date</th><th>Rolling Balance</th></tr></thead>
+          <tbody id="ato-tbody"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
     <div class="section" id="section-payroll">
       <div class="page-title">Payroll</div>
       <div class="page-sub">Recent pay runs from Xero Payroll</div>
@@ -544,7 +618,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 <div class="toast-container" id="toasts"></div>
 <script>
 const IS_DEMO = ${isDemo};
-let D = { invoices:[], bills:[], payRuns:[], jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), balance: 16875.81 };
+let D = { invoices:[], bills:[], payRuns:[], jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), atoQuarters:[], balance: 16875.81 };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -557,6 +631,7 @@ function nav(id) {
   else if(id==='bills')loadBills();
   else if(id==='payroll')loadPayroll();
   else if(id==='jobs')renderJobs();
+  else if(id==='ato')loadATO();
   else if(id==='forecast')buildForecast();
 }
 
@@ -568,6 +643,12 @@ async function api(url) {
 }
 
 function demoData(url) {
+  if(url==='/api/ato') return {quarters:[
+    {q:'Q1',fy:'2025-2026',start:'2025-07-01',end:'2025-09-30',dueAgent:'2025-10-28',dueNonAgent:'2025-10-28',gstCollected:18450.00,gstPaid:6230.00,netGST:12220.00,invoiceCount:12,billCount:8},
+    {q:'Q2',fy:'2025-2026',start:'2025-10-01',end:'2025-12-31',dueAgent:'2026-02-28',dueNonAgent:'2026-02-28',gstCollected:22100.00,gstPaid:8900.00,netGST:13200.00,invoiceCount:15,billCount:11},
+    {q:'Q3',fy:'2025-2026',start:'2026-01-01',end:'2026-03-31',dueAgent:'2026-05-23',dueNonAgent:'2026-04-28',gstCollected:19800.00,gstPaid:7100.00,netGST:12700.00,invoiceCount:10,billCount:9},
+    {q:'Q4',fy:'2025-2026',start:'2026-04-01',end:'2026-06-30',dueAgent:'2026-07-28',dueNonAgent:'2026-07-28',gstCollected:5200.00,gstPaid:2100.00,netGST:3100.00,invoiceCount:4,billCount:3}
+  ]};
   if(url==='/api/summary') return {tenantName:'Creted Civil Pty Ltd (Demo)',totalReceivables:231111.01,totalPayables:46227.17,netPosition:184883.84,
     invoices:[{client:'Metro Asphalt Pty Ltd',ref:'INV#20261085',amount:171833.75,due:'2026-04-28',status:'AUTHORISED'},{client:'Novacon Group',ref:'INV#20261084',amount:59277.26,due:'2026-04-23',status:'AUTHORISED'}],
     bills:[{supplier:'Holcim Australia Pty Ltd',amount:10446.48,due:'2026-01-30',status:'OVERDUE'},{supplier:'Mesh & Bar Pty Ltd',amount:21801.97,due:'2026-04-15',status:'AUTHORISED'},{supplier:'Campbellfield Concrete',amount:13979.72,due:'2026-04-20',status:'AUTHORISED'}]};
@@ -614,10 +695,12 @@ function buildForecast() {
     const we=new Date(ws); we.setDate(ws.getDate()+6);
     const inflows = D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
       + D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
-    const outflows = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0)+weeklyOut;
+    const basOut = getATOBASOutflows().filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
+    const outflows = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0)+weeklyOut+basOut;
     balance+=inflows-outflows;
     const mo=ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
-    weeks.push({w:w+1,ws,we,inflows,outflows,balance,mo,isDanger:balance<threshold,isNeg:balance<0});
+    const basLabels = getATOBASOutflows().filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
+    weeks.push({w:w+1,ws,we,inflows,outflows,balance,mo,isDanger:balance<threshold,isNeg:balance<0,basLabel:basLabels.length?basLabels.join(', '):''});
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
   document.getElementById('forecast-rows').innerHTML = weeks.map(w=>\`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
@@ -628,6 +711,7 @@ function buildForecast() {
     <div class="wk-bar">
       \${w.inflows>0?\`<div class="bar-in" style="width:\${Math.min(Math.round(w.inflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.outflows>0?\`<div class="bar-out" style="width:\${Math.min(Math.round(w.outflows/maxFlow*180),180)}px"></div>\`:''}
+      \${w.basLabel?\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${w.basLabel}</span>\`:''}
       \${w.isDanger?' <span style="font-size:11px;color:var(--danger)">⚠</span>':''}
     </div></div>\`).join('');
 }
@@ -663,6 +747,92 @@ async function loadPayroll() {
     document.getElementById('payroll-tbody').innerHTML = runs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No pay runs. Requires Xero Payroll subscription.</td></tr>':
       runs.map(r=>\`<tr><td>\${r.startDate||'—'} – \${r.endDate||'—'}</td><td>\${r.paymentDate||'—'}</td><td><b>\${fc(r.wages)}</b></td><td style="color:var(--amber)">\${fc(r.super)}</td><td style="color:var(--orange)">\${fc(r.payg)}</td><td><b>\${fc(r.totalNetPay)}</b></td></tr>\`).join('');
   } catch(e) { document.getElementById('payroll-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
+}
+
+// ── ATO Obligations ──
+function saveATOSetting(key, val) { localStorage.setItem(key, val); }
+function getATOSetting(key, def) { return localStorage.getItem(key) || def; }
+
+async function loadATO() {
+  document.getElementById('ato-tbody').innerHTML = '<tr><td colspan="10" class="loading">Loading...</td></tr>';
+  // Restore settings
+  const openingEl = document.getElementById('ato-opening');
+  const agentEl = document.getElementById('ato-agent-toggle');
+  openingEl.value = getATOSetting('rs_ato_opening', '');
+  agentEl.value = getATOSetting('rs_ato_agent', 'agent');
+  try {
+    const data = await api('/api/ato');
+    D.atoQuarters = data.quarters || [];
+    renderATO();
+    toast('ATO data loaded ✓');
+  } catch(e) {
+    document.getElementById('ato-tbody').innerHTML = \`<tr><td colspan="10" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`;
+    document.getElementById('ato-stats').innerHTML = '';
+  }
+}
+
+function renderATO() {
+  const quarters = D.atoQuarters;
+  if (!quarters || quarters.length === 0) { document.getElementById('ato-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No ATO data available</td></tr>'; document.getElementById('ato-stats').innerHTML = ''; return; }
+  const isAgent = getATOSetting('rs_ato_agent', 'agent') === 'agent';
+  const openingBal = parseFloat(getATOSetting('rs_ato_opening', '0')) || 0;
+  let rolling = openingBal;
+  const now = new Date();
+  let nextDue = null, nextAmt = null, totalLiability = openingBal;
+  // Current quarter detection
+  const curMonth = now.getMonth(), curYear = now.getFullYear();
+  let curQKey = '';
+  if (curMonth >= 6 && curMonth <= 8) curQKey = curYear + '-' + (curYear+1) + '-Q1';
+  else if (curMonth >= 9 && curMonth <= 11) curQKey = curYear + '-' + (curYear+1) + '-Q2';
+  else if (curMonth >= 0 && curMonth <= 2) curQKey = (curYear-1) + '-' + curYear + '-Q3';
+  else curQKey = (curYear-1) + '-' + curYear + '-Q4';
+  let curQGST = 0;
+
+  const rows = quarters.map(q => {
+    const qKey = q.fy + '-' + q.q;
+    const paygWH = parseFloat(getATOSetting('rs_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('rs_ato_payg_inst_' + qKey, '0')) || 0;
+    const basPayable = q.netGST + paygWH + paygInst;
+    rolling += basPayable;
+    totalLiability += basPayable;
+    const dueDate = isAgent ? q.dueAgent : q.dueNonAgent;
+    const dueDateObj = new Date(dueDate);
+    if (!nextDue && dueDateObj >= now) { nextDue = dueDate; nextAmt = basPayable; }
+    if (qKey === curQKey) curQGST = q.netGST;
+    const periodLabel = new Date(q.start).toLocaleDateString('en-AU',{month:'short',year:'2-digit'}) + ' – ' + new Date(q.end).toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
+    const isPast = dueDateObj < now;
+    return \`<tr style="\${isPast?'opacity:0.6':''}">
+      <td><b>\${q.fy} \${q.q}</b></td>
+      <td style="font-size:12px">\${periodLabel}</td>
+      <td style="color:var(--accent)">\${fc(q.gstCollected)}</td>
+      <td style="color:var(--danger)">\${fc(q.gstPaid)}</td>
+      <td><b>\${fc(q.netGST)}</b></td>
+      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('rs_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('rs_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
+      <td><b style="color:\${basPayable>0?'var(--danger)':'var(--accent)'};">\${fc(basPayable)}</b></td>
+      <td style="font-size:12px;\${!isPast&&dueDateObj<new Date(Date.now()+30*86400000)?'color:var(--amber);font-weight:700':''}">\${dueDate}</td>
+      <td><b style="color:\${rolling>0?'var(--danger)':'var(--accent)'};">\${fc(rolling)}</b></td>
+    </tr>\`;
+  }).join('');
+  document.getElementById('ato-tbody').innerHTML = rows;
+  document.getElementById('ato-stats').innerHTML = \`
+    <div class="stat \${nextDue?'amber':''}"><div class="stat-lbl">Next BAS Due</div><div class="stat-val">\${nextDue||'—'}</div><div class="stat-sub">\${nextAmt!=null?fc(nextAmt)+' payable':''}</div></div>
+    <div class="stat \${rolling>0?'red':''}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?'neg':''}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
+    <div class="stat"><div class="stat-lbl">Current Quarter GST</div><div class="stat-val">\${fc(curQGST)}</div><div class="stat-sub">net GST position</div></div>\`;
+}
+
+function getATOBASOutflows() {
+  // Returns array of {date, amount, label} for forecast integration
+  const quarters = D.atoQuarters || [];
+  const isAgent = getATOSetting('rs_ato_agent', 'agent') === 'agent';
+  return quarters.map(q => {
+    const qKey = q.fy + '-' + q.q;
+    const paygWH = parseFloat(getATOSetting('rs_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('rs_ato_payg_inst_' + qKey, '0')) || 0;
+    const basPayable = q.netGST + paygWH + paygInst;
+    const dueDate = isAgent ? q.dueAgent : q.dueNonAgent;
+    return { date: dueDate, amount: basPayable, label: 'ATO BAS ' + q.q + ' (' + q.fy + ')' };
+  }).filter(o => o.amount !== 0);
 }
 
 function renderJobs() {
@@ -725,6 +895,8 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 function toast(msg){const tc=document.getElementById('toasts'),t=document.createElement('div');t.className='toast';t.textContent=msg;tc.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.4s';setTimeout(()=>t.remove(),400);},3000);}
 
 loadDashboard();
+// Pre-load ATO data for forecast integration
+api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(() => {});
 </script>
 </body></html>`;
 }
