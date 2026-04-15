@@ -22,7 +22,7 @@ app.use(session({
 const CLIENT_ID = process.env.XERO_CLIENT_ID;
 const CLIENT_SECRET = process.env.XERO_CLIENT_SECRET;
 const REDIRECT_URI = process.env.XERO_REDIRECT_URI || 'http://localhost:3000/callback';
-const SCOPES = 'openid profile email offline_access accounting.invoices.read accounting.payments.read accounting.banktransactions.read accounting.contacts.read accounting.settings.read accounting.reports.profitandloss.read accounting.reports.balancesheet.read';
+const SCOPES = 'openid profile email offline_access accounting.invoices.read accounting.payments.read accounting.banktransactions.read accounting.contacts.read accounting.settings.read accounting.reports.profitandloss.read accounting.reports.balancesheet.read payroll.payruns.read payroll.employees.read payroll.payslip.read payroll.settings.read';
 
 let xeroClient = null;
 
@@ -333,16 +333,77 @@ app.get('/api/ato', requireAuth, async (req, res) => {
 app.get('/api/payroll', requireAuth, async (req, res) => {
   try {
     const token = await getAccessToken(req);
-    const data = await xeroGet('/payroll.xro/1.0/PayRuns', token, req.session.activeTenantId);
-    const payRuns = (data.PayRuns || []).slice(0,12).map(r=>({
-      startDate: r.StartDate, endDate: r.EndDate, paymentDate: r.PaymentDate,
-      wages: r.Wages, super: r.Superannuation, payg: r.Tax, totalNetPay: r.NetPay
-    }));
-    res.json({ payRuns });
-  } catch(e) { res.json({ payRuns: [], note: 'Payroll requires Xero Payroll: ' + e.message }); }
+    const tenantId = req.session.activeTenantId;
+    if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected.', needsReconnect: true });
+    let rawRuns = [];
+    let apiVersion = 'v2';
+    // Try v2 first
+    try {
+      const data = await xeroGet('/payroll.xro/2.0/PayRuns', token, tenantId);
+      rawRuns = data.PayRuns || [];
+    } catch (v2Err) {
+      console.log('Payroll v2 failed, trying v1:', v2Err.message);
+      apiVersion = 'v1';
+      try {
+        const data = await xeroGet('/payroll.xro/1.0/PayRuns', token, tenantId);
+        rawRuns = data.PayRuns || [];
+      } catch (v1Err) {
+        console.log('Payroll v1 also failed:', v1Err.message);
+        return res.json({ payRuns: [], summary: null, note: 'Payroll not available: ' + v1Err.message });
+      }
+    }
+    // Normalize and map pay runs
+    const payRuns = rawRuns.sort((a, b) => new Date(b.PaymentDate || b.PayRunPeriodEndDate || 0) - new Date(a.PaymentDate || a.PayRunPeriodEndDate || 0)).slice(0, 12).map(r => {
+      const gross = parseFloat(r.Wages || r.TotalWages || 0);
+      const superAmt = parseFloat(r.Superannuation || r.TotalSuperannuation || 0);
+      const payg = parseFloat(r.Tax || r.TotalTax || 0);
+      const net = parseFloat(r.NetPay || r.TotalNetPay || 0);
+      return {
+        periodStart: r.PayRunPeriodStartDate || r.StartDate || r.PayPeriodStartDate || null,
+        periodEnd: r.PayRunPeriodEndDate || r.EndDate || r.PayPeriodEndDate || null,
+        paymentDate: r.PaymentDate || null,
+        grossWages: gross,
+        superannuation: superAmt,
+        paygWithholding: payg,
+        netPay: net,
+        status: r.PayRunStatus || r.PayRunType || 'Unknown'
+      };
+    });
+    // Calculate weekly averages from last 8 pay runs
+    const recentRuns = payRuns.slice(0, 8).filter(r => r.grossWages > 0);
+    let summary = null;
+    if (recentRuns.length > 0) {
+      let totalWeeks = 0;
+      recentRuns.forEach(r => {
+        if (r.periodStart && r.periodEnd) {
+          const days = (new Date(r.periodEnd) - new Date(r.periodStart)) / 86400000;
+          totalWeeks += Math.max(days / 7, 1);
+        } else {
+          totalWeeks += 1;
+        }
+      });
+      const avgWeeks = totalWeeks / recentRuns.length;
+      const totalGross = recentRuns.reduce((s, r) => s + r.grossWages, 0);
+      const totalSuper = recentRuns.reduce((s, r) => s + r.superannuation, 0);
+      const totalPayg = recentRuns.reduce((s, r) => s + r.paygWithholding, 0);
+      const totalNet = recentRuns.reduce((s, r) => s + r.netPay, 0);
+      summary = {
+        averageWeeklyGross: Math.round(totalGross / recentRuns.length / avgWeeks * 100) / 100,
+        averageWeeklySuper: Math.round(totalSuper / recentRuns.length / avgWeeks * 100) / 100,
+        averageWeeklyPAYG: Math.round(totalPayg / recentRuns.length / avgWeeks * 100) / 100,
+        averageWeeklyNet: Math.round(totalNet / recentRuns.length / avgWeeks * 100) / 100,
+        runsAnalysed: recentRuns.length,
+        avgPeriodWeeks: Math.round(avgWeeks * 10) / 10
+      };
+    }
+    res.json({ payRuns, summary, apiVersion });
+  } catch (e) {
+    console.error('Payroll error:', e.message);
+    res.json({ payRuns: [], summary: null, note: 'Payroll error: ' + e.message });
+  }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.3.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.4.0' }));
 
 app.get('/api/debug-invoices', requireAuth, async (req, res) => {
   try {
@@ -585,12 +646,44 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
     </div>
     <div class="section" id="section-payroll">
       <div class="page-title">Payroll</div>
-      <div class="page-sub">Recent pay runs from Xero Payroll</div>
+      <div class="page-sub">Pay runs, super obligations, and PAYG withholding from Xero Payroll</div>
+      <div class="stats" id="payroll-stats"><div class="loading">Loading payroll data...</div></div>
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-hdr"><span class="card-title">⚙️ Payroll Settings</span></div>
+        <div class="card-body" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+          <div class="form-field" style="min-width:200px">
+            <label>PAYG Payment Frequency</label>
+            <select id="payroll-payg-freq" onchange="savePayrollSetting('rs_payroll_payg_freq', this.value); renderPayrollUpcoming()">
+              <option value="monthly">Monthly (default)</option>
+              <option value="weekly">Weekly</option>
+            </select>
+          </div>
+          <div class="form-field" style="min-width:200px">
+            <label>Super Payment Frequency</label>
+            <select disabled style="background:#f5f5f5">
+              <option>Weekly (with wages)</option>
+            </select>
+            <span style="font-size:10px;color:var(--amber);margin-top:2px">New legislation — paid with wages</span>
+          </div>
+          <div class="form-field" style="min-width:200px">
+            <label>Manual Weekly Override ($)</label>
+            <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('rs_payroll_weekly_override', this.value); loadPayroll()">
+            <span style="font-size:10px;color:var(--muted);margin-top:2px">Used if Xero payroll unavailable</span>
+          </div>
+          <button class="btn btn-outline" onclick="loadPayroll()" style="margin-top:18px">🔄 Refresh from Xero</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:18px" id="payroll-upcoming-card">
+        <div class="card-hdr"><span class="card-title">📅 Upcoming Payments</span></div>
+        <div class="card-body" id="payroll-upcoming" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
+          <div class="loading">Loading...</div>
+        </div>
+      </div>
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Pay Run History</span><button class="btn btn-outline" onclick="loadPayroll()">🔄 Refresh</button></div>
+        <div class="card-hdr"><span class="card-title">Pay Run History</span><span style="font-size:11px;color:var(--muted)" id="payroll-source"></span></div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Period</th><th>Payment Date</th><th>Gross Wages</th><th>Super</th><th>PAYG</th><th>Net to Bank</th></tr></thead>
-          <tbody id="payroll-tbody"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+          <thead><tr><th>Period</th><th>Payment Date</th><th>Gross Wages</th><th>Super (11.5%)</th><th>PAYG W/H</th><th>Net to Bank</th><th>Status</th></tr></thead>
+          <tbody id="payroll-tbody"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -626,7 +719,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 <div class="toast-container" id="toasts"></div>
 <script>
 const IS_DEMO = ${isDemo};
-let D = { invoices:[], bills:[], payRuns:[], jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), atoQuarters:[], balance: 16875.81 };
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), atoQuarters:[], balance: 16875.81 };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -660,9 +753,33 @@ function demoData(url) {
   if(url==='/api/summary') return {tenantName:'Creted Civil Pty Ltd (Demo)',totalReceivables:231111.01,totalPayables:46227.17,netPosition:184883.84,
     invoices:[{client:'Metro Asphalt Pty Ltd',ref:'INV#20261085',amount:171833.75,due:'2026-04-28',status:'AUTHORISED'},{client:'Novacon Group',ref:'INV#20261084',amount:59277.26,due:'2026-04-23',status:'AUTHORISED'}],
     bills:[{supplier:'Holcim Australia Pty Ltd',amount:10446.48,due:'2026-01-30',status:'OVERDUE'},{supplier:'Mesh & Bar Pty Ltd',amount:21801.97,due:'2026-04-15',status:'AUTHORISED'},{supplier:'Campbellfield Concrete',amount:13979.72,due:'2026-04-20',status:'AUTHORISED'}]};
-  if(url==='/api/payroll') return {payRuns:[
-    {startDate:'2026-03-01',endDate:'2026-03-07',paymentDate:'2026-03-07',wages:18310,super:2105.65,payg:3662,totalNetPay:14648},
-    {startDate:'2026-03-08',endDate:'2026-03-14',paymentDate:'2026-03-14',wages:18310,super:2105.65,payg:3662,totalNetPay:14648}]};
+  if(url==='/api/payroll') {
+    const demoPayRuns = [];
+    const baseDate = new Date(); baseDate.setDate(baseDate.getDate() - baseDate.getDay() + 1);
+    for (let i = 0; i < 12; i++) {
+      const end = new Date(baseDate); end.setDate(baseDate.getDate() - i * 7);
+      const start = new Date(end); start.setDate(end.getDate() - 6);
+      const payment = new Date(end);
+      const variance = 1 + (Math.sin(i * 1.7) * 0.08);
+      const gross = Math.round(22681 * variance);
+      const superAmt = Math.round(gross * 0.115);
+      const payg = Math.round(gross * 0.20);
+      const net = gross - payg;
+      demoPayRuns.push({
+        periodStart: start.toISOString().substring(0,10),
+        periodEnd: end.toISOString().substring(0,10),
+        paymentDate: payment.toISOString().substring(0,10),
+        grossWages: gross, superannuation: superAmt, paygWithholding: payg, netPay: net,
+        status: i === 0 ? 'Draft' : 'Paid'
+      });
+    }
+    const recent8 = demoPayRuns.slice(0, 8);
+    const avgGross = Math.round(recent8.reduce((s,r)=>s+r.grossWages,0) / 8);
+    const avgSuper = Math.round(recent8.reduce((s,r)=>s+r.superannuation,0) / 8);
+    const avgPayg = Math.round(recent8.reduce((s,r)=>s+r.paygWithholding,0) / 8);
+    const avgNet = Math.round(recent8.reduce((s,r)=>s+r.netPay,0) / 8);
+    return { payRuns: demoPayRuns, summary: { averageWeeklyGross: avgGross, averageWeeklySuper: avgSuper, averageWeeklyPAYG: avgPayg, averageWeeklyNet: avgNet, runsAnalysed: 8, avgPeriodWeeks: 1 } };
+  }
   return {invoices:D.invoices,bills:D.bills};
 }
 
@@ -694,27 +811,67 @@ async function loadDashboard() {
 
 async function buildForecast() {
   const threshold = parseFloat(document.getElementById('threshold')?.value)||10000;
-  const weeklyOut = 22681;
   let balance = D.balance;
   const start = new Date(); start.setDate(start.getDate()-start.getDay()+1);
   // Ensure ATO data is loaded
   if (!D.atoQuarters || D.atoQuarters.length === 0) {
     try { const atoData = await api('/api/ato'); D.atoQuarters = atoData.quarters || []; } catch(e) { console.error('ATO load in forecast:', e); }
   }
+  // Ensure payroll data is loaded
+  if (!D.payroll) {
+    try { await loadPayroll(); } catch(e) { console.error('Payroll load in forecast:', e); }
+  }
+  // Get payroll weekly amounts
+  const payroll = D.payroll || { avgWeekly: { gross: 0, super: 0, payg: 0, net: 0 }, paygFrequency: 'monthly' };
+  const weeklyNet = payroll.avgWeekly.net || 0;
+  const weeklySuper = payroll.avgWeekly.super || 0;
+  const weeklyPayg = payroll.avgWeekly.payg || 0;
+  const paygFreq = payroll.paygFrequency || getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
+  const hasPayrollData = weeklyNet > 0;
+  const effectiveWeeklyOut = hasPayrollData ? (weeklyNet + weeklySuper) : (manualOverride > 0 ? manualOverride : 0);
+  const effectiveWeeklyPayg = hasPayrollData ? weeklyPayg : (manualOverride > 0 ? Math.round(manualOverride * 0.20) : 0);
+
   const allBAS = getATOBASOutflows();
+  console.log('Forecast payroll: weekly out=' + effectiveWeeklyOut + ' payg=' + effectiveWeeklyPayg + ' freq=' + paygFreq);
   console.log('Forecast BAS outflows:', JSON.stringify(allBAS));
+
+  let paygAccumulated = 0;
   const weeks = [];
   for(let w=0;w<52;w++) {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
     const we=new Date(ws); we.setDate(ws.getDate()+6);
     const inflows = D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
       + D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
-    const basOut = getATOBASOutflows().filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
-    const outflows = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0)+weeklyOut+basOut;
-    balance+=inflows-outflows;
-    const mo=ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
-    const basLabels = getATOBASOutflows().filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
-    weeks.push({w:w+1,ws,we,inflows,outflows,balance,mo,isDanger:balance<threshold,isNeg:balance<0,basLabel:basLabels.length?basLabels.join(', '):''});
+    const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
+    const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
+
+    // Payroll outflows
+    let payrollOut = effectiveWeeklyOut;
+    let paygOut = 0;
+    const labels = [];
+
+    if (paygFreq === 'weekly') {
+      payrollOut += effectiveWeeklyPayg;
+    } else {
+      paygAccumulated += effectiveWeeklyPayg;
+      for (let d = new Date(ws); d <= we; d.setDate(d.getDate() + 1)) {
+        if (d.getDate() === 21) {
+          paygOut = paygAccumulated;
+          labels.push('PAYG W/H ' + fc(paygOut));
+          paygAccumulated = 0;
+          break;
+        }
+      }
+    }
+
+    const totalOut = billsOut + payrollOut + paygOut + basOut;
+    balance += inflows - totalOut;
+    const mo = ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
+    const basLabels = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
+    const allLabels = [...basLabels, ...labels];
+    if (payrollOut > 0 && w === 0) allLabels.unshift('Payroll ' + fc(payrollOut) + '/wk');
+    weeks.push({w:w+1,ws,we,inflows,outflows:totalOut,payrollOut,paygOut,billsOut,basOut,balance,mo,isDanger:balance<threshold,isNeg:balance<0,labels:allLabels});
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
   document.getElementById('forecast-rows').innerHTML = weeks.map(w=>\`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
@@ -725,7 +882,7 @@ async function buildForecast() {
     <div class="wk-bar">
       \${w.inflows>0?\`<div class="bar-in" style="width:\${Math.min(Math.round(w.inflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.outflows>0?\`<div class="bar-out" style="width:\${Math.min(Math.round(w.outflows/maxFlow*180),180)}px"></div>\`:''}
-      \${w.basLabel?\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${w.basLabel}</span>\`:''}
+      \${w.labels.length?w.labels.map(l=>\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${l}</span>\`).join(''):''}
       \${w.isDanger?' <span style="font-size:11px;color:var(--danger)">⚠</span>':''}
     </div></div>\`).join('');
 }
@@ -754,13 +911,161 @@ async function loadBills() {
   } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="5" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
+function savePayrollSetting(key, val) { localStorage.setItem(key, val); }
+function getPayrollSetting(key, def) { return localStorage.getItem(key) || def; }
+
 async function loadPayroll() {
+  // Restore settings
+  const freqEl = document.getElementById('payroll-payg-freq');
+  const overrideEl = document.getElementById('payroll-override');
+  if (freqEl) freqEl.value = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+  if (overrideEl) overrideEl.value = getPayrollSetting('rs_payroll_weekly_override', '');
   try {
     const data = await api('/api/payroll');
-    const runs = data.payRuns||[];
-    document.getElementById('payroll-tbody').innerHTML = runs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No pay runs. Requires Xero Payroll subscription.</td></tr>':
-      runs.map(r=>\`<tr><td>\${r.startDate||'—'} – \${r.endDate||'—'}</td><td>\${r.paymentDate||'—'}</td><td><b>\${fc(r.wages)}</b></td><td style="color:var(--amber)">\${fc(r.super)}</td><td style="color:var(--orange)">\${fc(r.payg)}</td><td><b>\${fc(r.totalNetPay)}</b></td></tr>\`).join('');
-  } catch(e) { document.getElementById('payroll-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
+    const runs = data.payRuns || [];
+    const summary = data.summary;
+    const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
+    const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+
+    // Store in D.payroll for forecast
+    if (summary) {
+      D.payroll = {
+        payRuns: runs,
+        avgWeekly: { gross: summary.averageWeeklyGross, super: summary.averageWeeklySuper, payg: summary.averageWeeklyPAYG, net: summary.averageWeeklyNet },
+        paygFrequency: paygFreq,
+        source: 'xero'
+      };
+    } else if (manualOverride > 0) {
+      D.payroll = {
+        payRuns: [],
+        avgWeekly: { gross: manualOverride, super: Math.round(manualOverride * 0.115), payg: Math.round(manualOverride * 0.20), net: Math.round(manualOverride * 0.80) },
+        paygFrequency: paygFreq,
+        source: 'manual'
+      };
+    } else {
+      D.payroll = { payRuns: [], avgWeekly: { gross: 0, super: 0, payg: 0, net: 0 }, paygFrequency: paygFreq, source: 'none' };
+    }
+
+    // Update stats cards
+    const avg = D.payroll.avgWeekly;
+    const monthlyPayg = Math.round(avg.payg * 4.33);
+    const nextPayRun = runs.find(r => r.status === 'Draft');
+    const nextPayDate = nextPayRun ? nextPayRun.paymentDate : (runs.length > 0 ? getNextWeeklyDate(runs[0].paymentDate) : '\u2014');
+    document.getElementById('payroll-stats').innerHTML = \`
+      <div class="stat"><div class="stat-lbl">Avg Weekly Payroll</div><div class="stat-val">\${fc(avg.gross)}</div><div class="stat-sub">gross wages</div></div>
+      <div class="stat amber"><div class="stat-lbl">Weekly Super</div><div class="stat-val">\${fc(avg.super)}</div><div class="stat-sub">11.5% obligation</div></div>
+      <div class="stat"><div class="stat-lbl">\${paygFreq === 'monthly' ? 'Monthly' : 'Weekly'} PAYG W/H</div><div class="stat-val">\${fc(paygFreq === 'monthly' ? monthlyPayg : avg.payg)}</div><div class="stat-sub">\${paygFreq === 'monthly' ? 'accumulated monthly' : 'per week'}</div></div>
+      <div class="stat"><div class="stat-lbl">Next Pay Run</div><div class="stat-val" style="font-size:20px">\${nextPayDate}</div><div class="stat-sub">\${nextPayRun ? nextPayRun.status : 'estimated'}</div></div>
+    \`;
+
+    // Source indicator
+    const srcEl = document.getElementById('payroll-source');
+    if (srcEl) srcEl.textContent = D.payroll.source === 'xero' ? 'Source: Xero Payroll' + (data.apiVersion ? ' (' + data.apiVersion + ')' : '') : D.payroll.source === 'manual' ? 'Source: Manual Override' : '';
+
+    // Pay run history table
+    document.getElementById('payroll-tbody').innerHTML = runs.length === 0
+      ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No pay runs found.' + (manualOverride > 0 ? ' Using manual override for forecasts.' : ' Connect Xero Payroll or set a manual override.') + '</td></tr>'
+      : runs.map(r => {
+        const statusBadge = r.status === 'Paid' ? 'bg' : r.status === 'Draft' ? 'ba' : 'bgr';
+        return \`<tr>
+          <td style="font-size:12px">\${fmtDate(r.periodStart)} \u2013 \${fmtDate(r.periodEnd)}</td>
+          <td>\${fmtDate(r.paymentDate)}</td>
+          <td><b>\${fc(r.grossWages)}</b></td>
+          <td style="color:var(--amber)">\${fc(r.superannuation)}</td>
+          <td style="color:var(--orange)">\${fc(r.paygWithholding)}</td>
+          <td><b>\${fc(r.netPay)}</b></td>
+          <td><span class="badge \${statusBadge}">\${r.status}</span></td>
+        </tr>\`;
+      }).join('');
+
+    renderPayrollUpcoming();
+    // Auto-populate PAYG into ATO if we have data
+    if (runs.length > 0) populateATOPayg(runs);
+    toast('Payroll loaded \u2713');
+  } catch (e) {
+    document.getElementById('payroll-tbody').innerHTML = \`<tr><td colspan="7" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`;
+    document.getElementById('payroll-stats').innerHTML = '';
+  }
+}
+
+function fmtDate(d) {
+  if (!d) return '\u2014';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function getNextWeeklyDate(lastDateStr) {
+  if (!lastDateStr) return '\u2014';
+  const d = new Date(lastDateStr);
+  d.setDate(d.getDate() + 7);
+  return d.toISOString().substring(0, 10);
+}
+
+function renderPayrollUpcoming() {
+  const el = document.getElementById('payroll-upcoming');
+  if (!el || !D.payroll) return;
+  const avg = D.payroll.avgWeekly;
+  const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+  const runs = D.payroll.payRuns || [];
+  const lastPayDate = runs.length > 0 ? runs[0].paymentDate : null;
+  const nextWageDate = lastPayDate ? getNextWeeklyDate(lastPayDate) : '\u2014';
+
+  // Next PAYG payment
+  let nextPaygDate = '\u2014', paygAmt = 0;
+  if (paygFreq === 'monthly') {
+    const now = new Date();
+    let paygMonth = new Date(now.getFullYear(), now.getMonth() + 1, 21);
+    if (now.getDate() > 21) paygMonth = new Date(now.getFullYear(), now.getMonth() + 2, 21);
+    nextPaygDate = paygMonth.toISOString().substring(0, 10);
+    paygAmt = Math.round(avg.payg * 4.33);
+  } else {
+    nextPaygDate = nextWageDate;
+    paygAmt = avg.payg;
+  }
+
+  el.innerHTML = \`
+    <div style="background:var(--sand);border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83d\udcb0 Next Wages</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px">\${fc(avg.net)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate}</div>
+    </div>
+    <div style="background:var(--sand);border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83c\udfe6 Next Super</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--amber)">\${fc(avg.super)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate} (with wages)</div>
+    </div>
+    <div style="background:var(--sand);border-radius:8px;padding:14px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83c\udfdb\ufe0f Next PAYG W/H</div>
+      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--orange)">\${fc(paygAmt)}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextPaygDate} (\${paygFreq})</div>
+    </div>
+  \`;
+}
+
+function populateATOPayg(payRuns) {
+  function getATOQuarterKey(dateStr) {
+    const d = new Date(dateStr);
+    const m = d.getMonth(), y = d.getFullYear();
+    if (m >= 6 && m <= 8) return y + '-' + (y+1) + '-Q1';
+    if (m >= 9 && m <= 11) return y + '-' + (y+1) + '-Q2';
+    if (m >= 0 && m <= 2) return (y-1) + '-' + y + '-Q3';
+    return (y-1) + '-' + y + '-Q4';
+  }
+  const qTotals = {};
+  payRuns.forEach(r => {
+    if (!r.paymentDate || !r.paygWithholding) return;
+    const qKey = getATOQuarterKey(r.paymentDate);
+    qTotals[qKey] = (qTotals[qKey] || 0) + r.paygWithholding;
+  });
+  Object.entries(qTotals).forEach(([qKey, total]) => {
+    const storageKey = 'rs_ato_payg_wh_' + qKey;
+    const existing = localStorage.getItem(storageKey);
+    const autoKey = 'rs_ato_payg_wh_auto_' + qKey;
+    if (!existing || existing === '0' || localStorage.getItem(autoKey) === 'true') {
+      localStorage.setItem(storageKey, Math.round(total).toString());
+      localStorage.setItem(autoKey, 'true');
+    }
+  });
 }
 
 // ── ATO Obligations ──
@@ -909,11 +1214,21 @@ document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click
 function toast(msg){const tc=document.getElementById('toasts'),t=document.createElement('div');t.className='toast';t.textContent=msg;tc.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.4s';setTimeout(()=>t.remove(),400);},3000);}
 
 loadDashboard();
-// Pre-load ATO data for forecast integration
+// Pre-load ATO and payroll data for forecast integration
 api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(() => {});
+api('/api/payroll').then(data => {
+  const summary = data.summary;
+  const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
+  if (summary) {
+    D.payroll = { payRuns: data.payRuns || [], avgWeekly: { gross: summary.averageWeeklyGross, super: summary.averageWeeklySuper, payg: summary.averageWeeklyPAYG, net: summary.averageWeeklyNet }, paygFrequency: paygFreq, source: 'xero' };
+  } else if (manualOverride > 0) {
+    D.payroll = { payRuns: [], avgWeekly: { gross: manualOverride, super: Math.round(manualOverride * 0.115), payg: Math.round(manualOverride * 0.20), net: Math.round(manualOverride * 0.80) }, paygFrequency: paygFreq, source: 'manual' };
+  }
+}).catch(() => {});
 </script>
 </body></html>`;
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Runsheet v1.1 running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Runsheet v1.4 running on port ${PORT}`));
