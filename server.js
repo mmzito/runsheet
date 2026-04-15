@@ -266,11 +266,12 @@ app.get('/api/invoices', requireAuth, async (req, res) => {
 app.get('/api/bills', requireAuth, async (req, res) => {
   try {
     const token = await getAccessToken(req);
-    const data = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCPAY', token, req.session.activeTenantId);
+    const data = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED,SUBMITTED,DRAFT&Type=ACCPAY', token, req.session.activeTenantId);
     const bills = (data.Invoices || []).filter(b=>b.AmountDue>0).map(b=>({
       supplier: b.Contact?.Name, amount: b.AmountDue,
-      due: b.DueDateString?.substring(0,10), status: b.Status
+      due: b.DueDateString?.substring(0,10), status: b.Status, type: b.Type, ref: b.InvoiceNumber
     }));
+    console.log('Bills count:', bills.length, 'Types:', [...new Set(bills.map(b=>b.type))]);
     res.json({ bills });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -287,7 +288,24 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
   } catch(e) { res.json({ payRuns: [], note: 'Payroll requires Xero Payroll: ' + e.message }); }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.2.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.3.0' }));
+
+app.get('/api/debug-invoices', requireAuth, async (req, res) => {
+  try {
+    const token = await getAccessToken(req);
+    const tenantId = req.session.activeTenantId;
+    const [accrec, accpay] = await Promise.all([
+      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCREC&SummaryOnly=true', token, tenantId),
+      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCPAY&SummaryOnly=true', token, tenantId)
+    ]);
+    const recInvs = (accrec.Invoices || []).slice(0, 5).map(i => ({ name: i.Contact?.Name, type: i.Type, amount: i.AmountDue, ref: i.InvoiceNumber }));
+    const payInvs = (accpay.Invoices || []).slice(0, 5).map(i => ({ name: i.Contact?.Name, type: i.Type, amount: i.AmountDue, ref: i.InvoiceNumber }));
+    res.json({
+      accrec: { count: (accrec.Invoices||[]).length, sample: recInvs },
+      accpay: { count: (accpay.Invoices||[]).length, sample: payInvs }
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/debug-session', (req, res) => {
   res.json({
