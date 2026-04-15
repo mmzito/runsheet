@@ -352,6 +352,10 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
         return res.json({ payRuns: [], summary: null, note: 'Payroll not available: ' + v1Err.message });
       }
     }
+    // Debug: log raw response
+    console.log('Payroll: version=' + apiVersion + ', runs=' + rawRuns.length);
+    if (rawRuns.length > 0) console.log('Payroll sample keys:', Object.keys(rawRuns[0]));
+    if (rawRuns.length > 0) console.log('Payroll sample:', JSON.stringify(rawRuns[0]).substring(0, 500));
     // Normalize and map pay runs
     const payRuns = rawRuns.sort((a, b) => new Date(b.PaymentDate || b.PayRunPeriodEndDate || 0) - new Date(a.PaymentDate || a.PayRunPeriodEndDate || 0)).slice(0, 12).map(r => {
       const gross = parseFloat(r.Wages || r.TotalWages || 0);
@@ -396,7 +400,8 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
         avgPeriodWeeks: Math.round(avgWeeks * 10) / 10
       };
     }
-    res.json({ payRuns, summary, apiVersion });
+    const _debug = { apiVersion, rawCount: rawRuns.length, sampleKeys: rawRuns.length > 0 ? Object.keys(rawRuns[0]) : [], sampleRaw: rawRuns.length > 0 ? rawRuns[0] : null };
+    res.json({ payRuns, summary, apiVersion, _debug });
   } catch (e) {
     console.error('Payroll error:', e.message);
     res.json({ payRuns: [], summary: null, note: 'Payroll error: ' + e.message });
