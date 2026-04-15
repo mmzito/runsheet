@@ -287,6 +287,12 @@ app.get('/api/ato', requireAuth, async (req, res) => {
     if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected.', needsReconnect: true });
     const data = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED,PAID', token, tenantId);
     const allInvs = data.Invoices || [];
+    // Debug: log first 2 invoices to see available fields
+    console.log('ATO: total invoices:', allInvs.length);
+    if (allInvs.length > 0) console.log('ATO sample:', JSON.stringify({
+      keys: Object.keys(allInvs[0]),
+      sample: allInvs.slice(0,2).map(i => ({ Type: i.Type, Date: i.Date, DateString: i.DateString, TaxAmount: i.TaxAmount, Total: i.Total, SubTotal: i.SubTotal, Contact: i.Contact?.Name }))
+    }));
     // Group by ATO quarter (Australian FY: Jul-Jun)
     function getATOQuarter(dateStr) {
       const d = new Date(dateStr);
@@ -315,7 +321,9 @@ app.get('/api/ato', requireAuth, async (req, res) => {
       q.gstPaid = Math.round(q.gstPaid * 100) / 100;
       q.netGST = Math.round((q.gstCollected - q.gstPaid) * 100) / 100;
     });
-    res.json({ quarters: sorted });
+    // Include debug info
+    const sample = allInvs.slice(0,3).map(i => ({ Type: i.Type, Date: i.Date, DateString: i.DateString, TaxAmount: i.TaxAmount, Total: i.Total, SubTotal: i.SubTotal }));
+    res.json({ quarters: sorted, _debug: { totalInvoices: allInvs.length, typeCounts: { ACCREC: allInvs.filter(i=>i.Type==='ACCREC').length, ACCPAY: allInvs.filter(i=>i.Type==='ACCPAY').length, other: allInvs.filter(i=>i.Type!=='ACCREC'&&i.Type!=='ACCPAY').length }, sampleInvoices: sample } });
   } catch(e) {
     console.error('ATO error:', e.message);
     res.status(500).json({ error: e.message });
