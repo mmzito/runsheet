@@ -125,7 +125,11 @@ app.get('/callback', async (req, res) => {
       req.session.activeTenantId = tenants[0].tenantId;
       req.session.activeTenantName = tenants[0].tenantName;
     }
-    res.redirect(tenants.length > 1 ? '/select-org' : '/app');
+    // Force session save before redirect to prevent race condition
+    req.session.save((saveErr) => {
+      if (saveErr) console.error('Session save error:', saveErr);
+      res.redirect(tenants.length > 1 ? '/select-org' : '/app');
+    });
   } catch (err) {
     console.error('Callback error:', err.message);
     res.redirect('/connect?error=' + encodeURIComponent(err.message));
@@ -283,7 +287,17 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
   } catch(e) { res.json({ payRuns: [], note: 'Payroll requires Xero Payroll: ' + e.message }); }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.1.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.2.0' }));
+
+app.get('/debug-session', (req, res) => {
+  res.json({
+    hasTokenSet: !!req.session.tokenSet,
+    activeTenantId: req.session.activeTenantId || null,
+    activeTenantName: req.session.activeTenantName || null,
+    tenantCount: (req.session.tenants || []).length,
+    tenants: (req.session.tenants || []).map(t => ({ id: t.tenantId, name: t.tenantName }))
+  });
+});
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 app.get('/app', async (req, res) => {
