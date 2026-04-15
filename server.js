@@ -565,6 +565,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
     <div class="sidebar-label">Money Out</div>
     <button class="nav-btn" onclick="nav('bills')"><span>📤</span> Bills</button>
     <button class="nav-btn" onclick="nav('ato')"><span>🏛️</span> ATO Obligations</button>
+    <button class="nav-btn" onclick="nav('debits')"><span>📋</span> Direct Debits</button>
     <button class="nav-btn" onclick="nav('payroll')"><span>💼</span> Payroll</button>
     <div class="sidebar-label">Planning</div>
     <button class="nav-btn" onclick="nav('jobs')"><span>🏗️</span> Job Pipeline</button>
@@ -703,6 +704,24 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         </table></div>
       </div>
     </div>
+    <div class="section" id="section-debits">
+      <div class="page-title">Direct Debit Schedule</div>
+      <div class="page-sub">Recurring direct debits, finance payments, and subscriptions</div>
+      <div class="stats" id="debit-stats"></div>
+      <div style="margin:14px 0;display:flex;justify-content:flex-end;gap:10px">
+        <button class="btn btn-outline" id="debit-import-btn" onclick="importDebits()">📥 Import</button>
+        <button class="btn btn-outline" onclick="exportDebits()">📤 Export</button>
+        <button class="btn btn-primary" onclick="openDebitModal()">+ Add Direct Debit</button>
+      </div>
+      <input type="file" id="debit-import-file" accept=".json" style="display:none" onchange="handleDebitImport(event)">
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Direct Debits</span><button class="btn btn-outline" onclick="loadDebits()">🔄 Refresh</button></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Name</th><th>Category</th><th>Amount</th><th>Frequency</th><th>Next Due</th><th>End Date</th><th>Reference</th><th>Annual Cost</th><th>Actions</th></tr></thead>
+          <tbody id="debit-tbody"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
     <div class="section" id="section-jobs">
       <div class="page-title">Job Pipeline</div>
       <div class="page-sub">Add upcoming jobs to see payment timing in your 52-week forecast</div>
@@ -711,6 +730,19 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div id="jobs-content"></div>
     </div>
   </main>
+</div>
+<div class="modal-overlay" id="debit-modal">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="debit-modal-title">Add Direct Debit</span><button class="modal-close" onclick="closeModal('debit-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="debit-edit-id">
+      <div class="form-row"><div class="form-field"><label>Name</label><input type="text" id="debit-name" placeholder="e.g. Toyota Hilux Finance"></div><div class="form-field"><label>Category</label><select id="debit-category"><option value="Equipment Finance">Equipment Finance</option><option value="Vehicle Finance">Vehicle Finance</option><option value="Insurance">Insurance</option><option value="Rent/Lease">Rent/Lease</option><option value="Subscription">Subscription</option><option value="ATO Payment Plan">ATO Payment Plan</option><option value="Utilities">Utilities</option><option value="Other">Other</option></select></div></div>
+      <div class="form-row"><div class="form-field"><label>Amount ($)</label><input type="number" id="debit-amount" step="0.01" placeholder="0.00"></div><div class="form-field"><label>Frequency</label><select id="debit-frequency"><option value="Weekly">Weekly</option><option value="Fortnightly">Fortnightly</option><option value="Monthly">Monthly</option><option value="Quarterly">Quarterly</option><option value="Annually">Annually</option></select></div></div>
+      <div class="form-row"><div class="form-field"><label>Next Payment Date</label><input type="date" id="debit-next-date"></div><div class="form-field"><label>End Date (optional)</label><input type="date" id="debit-end-date"></div></div>
+      <div class="form-field" style="margin-bottom:14px"><label>Reference (optional)</label><input type="text" id="debit-reference" placeholder="e.g. account number"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('debit-modal')">Cancel</button><button class="btn btn-primary" onclick="saveDebit()">Save</button></div>
+  </div>
 </div>
 <div class="modal-overlay" id="job-modal">
   <div class="modal">
@@ -735,7 +767,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 <div class="toast-container" id="toasts"></div>
 <script>
 const IS_DEMO = ${isDemo};
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), atoQuarters:[], balance: 16875.81 };
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('rs_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -749,6 +781,7 @@ function nav(id) {
   else if(id==='payroll')loadPayroll();
   else if(id==='jobs')renderJobs();
   else if(id==='ato')loadATO();
+  else if(id==='debits')loadDebits();
   else if(id==='forecast')buildForecast();
 }
 
@@ -760,6 +793,19 @@ async function api(url) {
 }
 
 function demoData(url) {
+  if(url==='/api/demo-debits') {
+    const now = new Date();
+    const nd = (daysOffset) => { const d = new Date(now); d.setDate(d.getDate()+daysOffset); return d.toISOString().substring(0,10); };
+    return [
+      {id:1,name:'Toyota Hilux Finance',amount:1850,frequency:'Monthly',category:'Equipment Finance',reference:'LOAN-TH2024',nextDate:nd(12),endDate:'2028-12-15'},
+      {id:2,name:'Isuzu Tipper Lease',amount:2400,frequency:'Monthly',category:'Vehicle Finance',reference:'LEASE-IT001',nextDate:nd(5),endDate:'2027-06-30'},
+      {id:3,name:'RACV Fleet Insurance',amount:890,frequency:'Monthly',category:'Insurance',reference:'POL-FL9982',nextDate:nd(18),endDate:''},
+      {id:4,name:'Telstra Business',amount:320,frequency:'Monthly',category:'Subscription',reference:'ACC-8834721',nextDate:nd(8),endDate:''},
+      {id:5,name:'ATO Payment Plan',amount:5000,frequency:'Monthly',category:'ATO Payment Plan',reference:'PRN-44829103',nextDate:nd(3),endDate:'2026-09-30'},
+      {id:6,name:'Verizon Connect GPS',amount:180,frequency:'Monthly',category:'Subscription',reference:'VC-AU-2291',nextDate:nd(22),endDate:''},
+      {id:7,name:'Site Shed Rent',amount:650,frequency:'Monthly',category:'Rent/Lease',reference:'SHED-LOT14',nextDate:nd(1),endDate:''}
+    ];
+  }
   if(url==='/api/ato') return {quarters:[
     {q:'Q1',fy:'2025-2026',start:'2025-07-01',end:'2025-09-30',dueAgent:'2025-10-28',dueNonAgent:'2025-10-28',gstCollected:18450.00,gstPaid:6230.00,netGST:12220.00,invoiceCount:12,billCount:8},
     {q:'Q2',fy:'2025-2026',start:'2025-10-01',end:'2025-12-31',dueAgent:'2026-02-28',dueNonAgent:'2026-02-28',gstCollected:22100.00,gstPaid:8900.00,netGST:13200.00,invoiceCount:15,billCount:11},
@@ -849,8 +895,9 @@ async function buildForecast() {
   const effectiveWeeklyPayg = hasPayrollData ? weeklyPayg : (manualOverride > 0 ? Math.round(manualOverride * 0.20) : 0);
 
   const allBAS = getATOBASOutflows();
-  console.log('Forecast payroll: weekly out=' + effectiveWeeklyOut + ' payg=' + effectiveWeeklyPayg + ' freq=' + paygFreq);
-  console.log('Forecast BAS outflows:', JSON.stringify(allBAS));
+  const forecastEnd = new Date(start); forecastEnd.setDate(forecastEnd.getDate() + 52*7);
+  const allDebitOccurrences = getDebitOccurrences(start, forecastEnd);
+  console.log('Forecast: payroll=' + effectiveWeeklyOut + '/wk, BAS=' + allBAS.length + ', debits=' + allDebitOccurrences.length);
 
   let paygAccumulated = 0;
   const weeks = [];
@@ -861,11 +908,16 @@ async function buildForecast() {
       + D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
     const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
+    
+    // Direct debit outflows for this week
+    const weekDebits = allDebitOccurrences.filter(o => o.date >= ws && o.date <= we);
+    const ddOut = weekDebits.reduce((s,o) => s + o.amount, 0);
+    const ddLabels = weekDebits.map(o => o.label);
 
     // Payroll outflows
     let payrollOut = effectiveWeeklyOut;
     let paygOut = 0;
-    const labels = [];
+    const labels = [...ddLabels];
 
     if (paygFreq === 'weekly') {
       payrollOut += effectiveWeeklyPayg;
@@ -881,7 +933,7 @@ async function buildForecast() {
       }
     }
 
-    const totalOut = billsOut + payrollOut + paygOut + basOut;
+    const totalOut = billsOut + payrollOut + paygOut + basOut + ddOut;
     balance += inflows - totalOut;
     const mo = ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const basLabels = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
@@ -1228,6 +1280,173 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 function toast(msg){const tc=document.getElementById('toasts'),t=document.createElement('div');t.className='toast';t.textContent=msg;tc.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.4s';setTimeout(()=>t.remove(),400);},3000);}
+
+// ── DIRECT DEBITS ──────────────────────────────────────────────────────────
+function loadDebits() {
+  D.debits = JSON.parse(localStorage.getItem('rs_debits')||'[]');
+  renderDebits();
+}
+
+function renderDebits() {
+  const debits = D.debits || [];
+  const now = new Date();
+  const active = debits.filter(d => !d.endDate || new Date(d.endDate) >= now);
+  
+  // Stats
+  const freqMultiplier = { Weekly: 52, Fortnightly: 26, Monthly: 12, Quarterly: 4, Annually: 1 };
+  const totalAnnual = active.reduce((s,d) => s + (parseFloat(d.amount)||0) * (freqMultiplier[d.frequency]||12), 0);
+  const totalMonthly = Math.round(totalAnnual / 12);
+  const totalWeekly = Math.round(totalAnnual / 52);
+  
+  // Next due
+  const upcoming = active.filter(d => new Date(d.nextDate) >= now).sort((a,b) => new Date(a.nextDate) - new Date(b.nextDate));
+  const next = upcoming[0];
+  
+  document.getElementById('debit-stats').innerHTML = \`
+    <div class="stat amber"><div class="stat-lbl">Monthly Commitment</div><div class="stat-val">\${fc(totalMonthly)}</div><div class="stat-sub">all active debits</div></div>
+    <div class="stat"><div class="stat-lbl">Weekly Commitment</div><div class="stat-val">\${fc(totalWeekly)}</div></div>
+    <div class="stat \${next && days(next.nextDate) <= 7 ? 'red' : ''}"><div class="stat-lbl">Next Debit Due</div><div class="stat-val" style="font-size:18px">\${next ? next.name : 'None'}</div><div class="stat-sub">\${next ? next.nextDate + ' · ' + fc(next.amount) : ''}</div></div>
+    <div class="stat"><div class="stat-lbl">Active Debits</div><div class="stat-val">\${active.length}</div></div>\`;
+  
+  // Table
+  if (debits.length === 0) {
+    document.getElementById('debit-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted)">No direct debits. Click + Add Direct Debit to get started.</td></tr>';
+    return;
+  }
+  const sorted = [...debits].sort((a,b) => new Date(a.nextDate) - new Date(b.nextDate));
+  document.getElementById('debit-tbody').innerHTML = sorted.map(d => {
+    const annual = (parseFloat(d.amount)||0) * (freqMultiplier[d.frequency]||12);
+    const expired = d.endDate && new Date(d.endDate) < now;
+    const dueSoon = !expired && days(d.nextDate) <= 7 && days(d.nextDate) >= 0;
+    return \`<tr style="\${expired ? 'opacity:0.4;text-decoration:line-through;' : ''}\${dueSoon ? 'background:rgba(192,57,43,0.06);' : ''}">
+      <td><b>\${d.name}</b></td>
+      <td><span class="badge \${d.category==='ATO Payment Plan'?'br':d.category.includes('Finance')?'ba':'bg'}">\${d.category}</span></td>
+      <td><b>\${fc(d.amount)}</b></td>
+      <td>\${d.frequency}</td>
+      <td style="color:\${dueSoon?'var(--danger)':'inherit'};font-weight:\${dueSoon?700:400}">\${d.nextDate||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">\${d.endDate||'—'}</td>
+      <td style="font-size:12px;color:var(--muted)">\${d.reference||'—'}</td>
+      <td>\${fc(annual)}/yr</td>
+      <td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="editDebit('\${d.id}')">✏️</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteDebit('\${d.id}')">✕</button></td>
+    </tr>\`;
+  }).join('');
+}
+
+function openDebitModal(editId) {
+  document.getElementById('debit-edit-id').value = editId || '';
+  document.getElementById('debit-modal-title').textContent = editId ? 'Edit Direct Debit' : 'Add Direct Debit';
+  if (editId) {
+    const d = D.debits.find(x => x.id === editId);
+    if (d) {
+      document.getElementById('debit-name').value = d.name;
+      document.getElementById('debit-category').value = d.category;
+      document.getElementById('debit-amount').value = d.amount;
+      document.getElementById('debit-frequency').value = d.frequency;
+      document.getElementById('debit-next-date').value = d.nextDate;
+      document.getElementById('debit-end-date').value = d.endDate || '';
+      document.getElementById('debit-reference').value = d.reference || '';
+    }
+  } else {
+    document.getElementById('debit-name').value = '';
+    document.getElementById('debit-amount').value = '';
+    document.getElementById('debit-next-date').value = '';
+    document.getElementById('debit-end-date').value = '';
+    document.getElementById('debit-reference').value = '';
+  }
+  openModal('debit-modal');
+}
+
+function editDebit(id) { openDebitModal(id); }
+
+function saveDebit() {
+  const editId = document.getElementById('debit-edit-id').value;
+  const d = {
+    id: editId || Date.now().toString(),
+    name: document.getElementById('debit-name').value,
+    category: document.getElementById('debit-category').value,
+    amount: parseFloat(document.getElementById('debit-amount').value) || 0,
+    frequency: document.getElementById('debit-frequency').value,
+    nextDate: document.getElementById('debit-next-date').value,
+    endDate: document.getElementById('debit-end-date').value || null,
+    reference: document.getElementById('debit-reference').value || null
+  };
+  if (!d.name || !d.amount || !d.nextDate) { alert('Enter name, amount, and next payment date'); return; }
+  if (editId) {
+    const idx = D.debits.findIndex(x => x.id === editId);
+    if (idx >= 0) D.debits[idx] = d;
+  } else {
+    D.debits.push(d);
+  }
+  localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+  closeModal('debit-modal');
+  renderDebits();
+  toast(editId ? 'Debit updated ✓' : 'Debit added ✓');
+}
+
+function deleteDebit(id) {
+  if (!confirm('Remove this direct debit?')) return;
+  D.debits = D.debits.filter(d => d.id !== id);
+  localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+  renderDebits();
+  toast('Removed');
+}
+
+function exportDebits() {
+  const blob = new Blob([JSON.stringify(D.debits, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'runsheet-direct-debits.json';
+  a.click();
+  toast('Exported ✓');
+}
+
+function importDebits() { document.getElementById('debit-import-file').click(); }
+function handleDebitImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        D.debits = data;
+        localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+        renderDebits();
+        toast('Imported ' + data.length + ' debits ✓');
+      } else { alert('Invalid format — expected JSON array'); }
+    } catch(err) { alert('Failed to parse file: ' + err.message); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function getDebitOccurrences(forecastStart, forecastEnd) {
+  const occurrences = [];
+  const now = new Date();
+  (D.debits || []).forEach(d => {
+    if (!d.nextDate || !d.amount) return;
+    const amount = parseFloat(d.amount) || 0;
+    const endDate = d.endDate ? new Date(d.endDate) : null;
+    let current = new Date(d.nextDate);
+    // Generate occurrences within forecast window
+    let safety = 0;
+    while (current <= forecastEnd && safety < 520) {
+      safety++;
+      if (endDate && current > endDate) break;
+      if (current >= forecastStart) {
+        occurrences.push({ date: new Date(current), amount, label: 'DD: ' + d.name });
+      }
+      // Advance to next occurrence
+      if (d.frequency === 'Weekly') current = new Date(current.getTime() + 7*86400000);
+      else if (d.frequency === 'Fortnightly') current = new Date(current.getTime() + 14*86400000);
+      else if (d.frequency === 'Monthly') { current = new Date(current); current.setMonth(current.getMonth() + 1); }
+      else if (d.frequency === 'Quarterly') { current = new Date(current); current.setMonth(current.getMonth() + 3); }
+      else if (d.frequency === 'Annually') { current = new Date(current); current.setFullYear(current.getFullYear() + 1); }
+      else break;
+    }
+  });
+  return occurrences;
+}
 
 loadDashboard();
 // Pre-load ATO and payroll data for forecast integration
