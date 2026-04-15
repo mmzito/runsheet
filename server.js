@@ -538,6 +538,10 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--dark);color:#fff;padding:11px 16px;border-radius:8px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideIn 0.2s;border-left:3px solid var(--light);min-width:200px}
 @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+.fc-click{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+.fc-popup{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:14px 16px;z-index:200;min-width:210px;max-width:340px;font-size:12px;line-height:1.7}
+.fc-popup-title{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--sand);padding-bottom:5px}
+.fc-popup-row{display:flex;justify-content:space-between;gap:12px}.fc-popup-row span:last-child{font-weight:600;white-space:nowrap}
 @media(max-width:768px){.sidebar{display:none}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -871,6 +875,43 @@ async function loadDashboard() {
   }
 }
 
+// ── Forecast breakdown popup ──
+function showBreakdown(e) {
+  e.stopPropagation();
+  const el = e.currentTarget;
+  const raw = el.getAttribute('data-bd');
+  const title = el.getAttribute('data-bd-title') || 'Breakdown';
+  if (!raw) return;
+  dismissBreakdown();
+  let items;
+  try { items = JSON.parse(raw.replace(/&quot;/g,'"').replace(/&#39;/g,"'")); } catch(err) { return; }
+  if (!items.length) return;
+  const popup = document.createElement('div');
+  popup.className = 'fc-popup';
+  popup.id = 'fc-popup-active';
+  popup.innerHTML = '<div class="fc-popup-title">' + title + '</div>' + items.map(function(r){ return '<div class="fc-popup-row"><span>' + r.lbl + '</span><span>' + r.amt + '</span></div>'; }).join('');
+  document.body.appendChild(popup);
+  const rect = el.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left + rect.width/2 - 130;
+  if (left < 8) left = 8;
+  if (left + 280 > window.innerWidth) left = window.innerWidth - 290;
+  if (top + 200 > window.innerHeight) top = rect.top - popup.offsetHeight - 6;
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+}
+function dismissBreakdown() {
+  const old = document.getElementById('fc-popup-active');
+  if (old) old.remove();
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.fc-popup') && !e.target.closest('.fc-click')) dismissBreakdown();
+});
+document.addEventListener('click', function(e) {
+  const el = e.target.closest('.fc-click[data-bd]');
+  if (el) showBreakdown({stopPropagation:function(){e.stopPropagation();},currentTarget:el});
+}, true);
+
 async function buildForecast() {
   const threshold = parseFloat(document.getElementById('threshold')?.value)||10000;
   let balance = D.balance;
@@ -912,12 +953,9 @@ async function buildForecast() {
     // Direct debit outflows for this week
     const weekDebits = allDebitOccurrences.filter(o => o.date >= ws && o.date <= we);
     const ddOut = weekDebits.reduce((s,o) => s + o.amount, 0);
-    const ddLabels = weekDebits.map(o => o.label);
-
     // Payroll outflows
     let payrollOut = effectiveWeeklyOut;
     let paygOut = 0;
-    const labels = [...ddLabels];
 
     if (paygFreq === 'weekly') {
       payrollOut += effectiveWeeklyPayg;
@@ -926,7 +964,6 @@ async function buildForecast() {
       for (let d = new Date(ws); d <= we; d.setDate(d.getDate() + 1)) {
         if (d.getDate() === 21) {
           paygOut = paygAccumulated;
-          labels.push('PAYG W/H ' + fc(paygOut));
           paygAccumulated = 0;
           break;
         }
@@ -937,22 +974,33 @@ async function buildForecast() {
     balance += inflows - totalOut;
     const mo = ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const basLabels = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
-    const allLabels = [...basLabels, ...labels];
-    if (payrollOut > 0 && w === 0) allLabels.unshift('Payroll ' + fc(payrollOut) + '/wk');
-    weeks.push({w:w+1,ws,we,inflows,outflows:totalOut,payrollOut,paygOut,billsOut,basOut,balance,mo,isDanger:balance<threshold,isNeg:balance<0,labels:allLabels});
+    // Visible tag labels: BAS + PAYG (not DD)
+    const tagLabels = [...basLabels];
+    if (paygOut > 0) tagLabels.push('PAYG W/H ' + fc(paygOut));
+    // Build itemized breakdowns for click popups
+    const inBreakdown = [];
+    D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0) inBreakdown.push({lbl:i.client||i.ref||'Invoice',amt:fc(i.amount)}); });
+    D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job',amt:fc(r)}); });
+    const outBreakdown = [];
+    if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
+    if (paygOut > 0) outBreakdown.push({lbl:'PAYG W/H',amt:fc(paygOut)});
+    D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).forEach(b => { if(b.amount>0) outBreakdown.push({lbl:b.supplier||'Bill',amt:fc(b.amount)}); });
+    weekDebits.forEach(dd => outBreakdown.push({lbl:dd.label.replace('DD: ',''),amt:fc(dd.amount)}));
+    if (basOut > 0) { allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).forEach(o => outBreakdown.push({lbl:o.label,amt:fc(o.amount)})); }
+    weeks.push({w:w+1,ws,we,inflows,outflows:totalOut,balance,mo,isDanger:balance<threshold,isNeg:balance<0,tagLabels,inBD:JSON.stringify(inBreakdown),outBD:JSON.stringify(outBreakdown)});
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
-  document.getElementById('forecast-rows').innerHTML = weeks.map(w=>\`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
+  document.getElementById('forecast-rows').innerHTML = weeks.map(w=>{const ib=w.inBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');const ob=w.outBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');return \`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
     <div class="wk-lbl">Wk \${w.w}</div><div class="wk-mo">\${w.mo}</div>
-    <div class="wk-in">\${w.inflows>0?'+'+fc(w.inflows):'—'}</div>
-    <div class="wk-out">\${w.outflows>0?'-'+fc(w.outflows):'—'}</div>
+    <div class="wk-in \${w.inflows>0?'fc-click':''}" \${w.inflows>0?'data-bd-title=Inflows data-bd=\"'+ib+'\"':''}>\${w.inflows>0?'+'+fc(w.inflows):'—'}</div>
+    <div class="wk-out \${w.outflows>0?'fc-click':''}" \${w.outflows>0?'data-bd-title=Outflows data-bd=\"'+ob+'\"':''}>\${w.outflows>0?'-'+fc(w.outflows):'—'}</div>
     <div class="wk-bal \${w.isNeg?'neg':w.isDanger?'low':'ok'}">\${fc(w.balance)}</div>
     <div class="wk-bar">
       \${w.inflows>0?\`<div class="bar-in" style="width:\${Math.min(Math.round(w.inflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.outflows>0?\`<div class="bar-out" style="width:\${Math.min(Math.round(w.outflows/maxFlow*180),180)}px"></div>\`:''}
-      \${w.labels.length?w.labels.map(l=>\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${l}</span>\`).join(''):''}
+      \${w.tagLabels&&w.tagLabels.length?w.tagLabels.map(l=>\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${l}</span>\`).join(''):''}
       \${w.isDanger?' <span style="font-size:11px;color:var(--danger)">⚠</span>':''}
-    </div></div>\`).join('');
+    </div></div>\`;}).join('');
 }
 
 async function loadInvoices() {
