@@ -336,21 +336,32 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
     const tenantId = req.session.activeTenantId;
     if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected.', needsReconnect: true });
     let rawRuns = [];
-    let apiVersion = 'v2';
-    // Try v2 first
+    let apiVersion = 'unknown';
+    let debugResponses = {};
+    // Try v1 first (AU payroll is v1)
     try {
-      const data = await xeroGet('/payroll.xro/2.0/PayRuns', token, tenantId);
+      const data = await xeroGet('/payroll.xro/1.0/PayRuns', token, tenantId);
+      debugResponses.v1 = { keys: Object.keys(data), count: (data.PayRuns||[]).length };
       rawRuns = data.PayRuns || [];
-    } catch (v2Err) {
-      console.log('Payroll v2 failed, trying v1:', v2Err.message);
       apiVersion = 'v1';
+    } catch (v1Err) {
+      console.log('Payroll v1 failed:', v1Err.message);
+      debugResponses.v1error = v1Err.message;
+    }
+    // If v1 returned nothing, try v2
+    if (rawRuns.length === 0) {
       try {
-        const data = await xeroGet('/payroll.xro/1.0/PayRuns', token, tenantId);
-        rawRuns = data.PayRuns || [];
-      } catch (v1Err) {
-        console.log('Payroll v1 also failed:', v1Err.message);
-        return res.json({ payRuns: [], summary: null, note: 'Payroll not available: ' + v1Err.message });
+        const data = await xeroGet('/payroll.xro/2.0/PayRuns', token, tenantId);
+        debugResponses.v2 = { keys: Object.keys(data), topLevel: JSON.stringify(data).substring(0, 300) };
+        rawRuns = data.PayRuns || data.payRuns || data.payruns || [];
+        if (rawRuns.length > 0) apiVersion = 'v2';
+      } catch (v2Err) {
+        console.log('Payroll v2 also failed:', v2Err.message);
+        debugResponses.v2error = v2Err.message;
       }
+    }
+    if (rawRuns.length === 0) {
+      return res.json({ payRuns: [], summary: null, note: 'No pay runs found', _debug: { debugResponses } });
     }
     // Debug: log raw response
     console.log('Payroll: version=' + apiVersion + ', runs=' + rawRuns.length);
