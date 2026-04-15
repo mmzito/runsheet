@@ -692,11 +692,17 @@ async function loadDashboard() {
   }
 }
 
-function buildForecast() {
+async function buildForecast() {
   const threshold = parseFloat(document.getElementById('threshold')?.value)||10000;
   const weeklyOut = 22681;
   let balance = D.balance;
   const start = new Date(); start.setDate(start.getDate()-start.getDay()+1);
+  // Ensure ATO data is loaded
+  if (!D.atoQuarters || D.atoQuarters.length === 0) {
+    try { const atoData = await api('/api/ato'); D.atoQuarters = atoData.quarters || []; } catch(e) { console.error('ATO load in forecast:', e); }
+  }
+  const allBAS = getATOBASOutflows();
+  console.log('Forecast BAS outflows:', JSON.stringify(allBAS));
   const weeks = [];
   for(let w=0;w<52;w++) {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
