@@ -310,7 +310,7 @@ app.get('/api/ato', requireAuth, async (req, res) => {
       const qInfo = getATOQuarter(dateStr);
       const key = qInfo.fy + '-' + qInfo.q;
       if (!quarters[key]) quarters[key] = { ...qInfo, key, gstCollected: 0, gstPaid: 0, invoiceCount: 0, billCount: 0 };
-      const taxAmt = parseFloat(inv.TaxAmount) || 0;
+      const taxAmt = parseFloat(inv.TaxAmount) || (parseFloat(inv.Total||0) - parseFloat(inv.SubTotal||0)) || 0;
       if (inv.Type === 'ACCREC') { quarters[key].gstCollected += taxAmt; quarters[key].invoiceCount++; }
       else if (inv.Type === 'ACCPAY') { quarters[key].gstPaid += taxAmt; quarters[key].billCount++; }
     });
