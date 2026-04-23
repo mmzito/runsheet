@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
   store: new FileStore({ path: '/tmp/sessions', ttl: 3600, retries: 0, logFn: ()=>{} }),
-  secret: process.env.SESSION_SECRET || 'runsheet-dev-secret-change-in-prod',
+  secret: process.env.SESSION_SECRET || 'prestart-dev-secret-change-in-prod',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
@@ -51,24 +51,24 @@ app.get('/connect', (req, res) => {
   const err = req.query.error ? `<div style="background:#FDECEA;border-left:4px solid #c0392b;padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:20px;color:#7B2222">Connection failed: ${decodeURIComponent(req.query.error)}</div>` : '';
   res.send(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Runsheet — Connect Xero</title>
+<title>Prestart — Connect Xero</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#0F1F12;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#1B2A4A;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .card{background:#fff;border-radius:16px;padding:48px 40px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
-.logo{font-family:'DM Serif Display',serif;font-size:32px;color:#0F1F12;margin-bottom:4px}.logo span{color:#52B788}
-.tagline{font-size:12px;color:#718096;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:28px}
-h2{font-size:18px;color:#0F1F12;margin-bottom:10px}p{font-size:13px;color:#5A6672;line-height:1.6;margin-bottom:24px}
-.btn-xero{display:block;background:#0F1F12;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;transition:background 0.2s;margin-bottom:10px}
-.btn-xero:hover{background:#1A3320}
-.btn-demo{display:block;background:transparent;color:#5A6672;text-decoration:none;padding:12px;border-radius:10px;font-size:13px;border:1.5px solid #D4E6DA;transition:all 0.2s}
-.btn-demo:hover{border-color:#2D6A4F;color:#2D6A4F}
+.logo{font-family:'DM Serif Display',serif;font-size:32px;color:#1B2A4A;margin-bottom:4px}.logo span{color:#FF6B35}
+.tagline{font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:28px}
+h2{font-size:18px;color:#1B2A4A;margin-bottom:10px}p{font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:24px}
+.btn-xero{display:block;background:#1B2A4A;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;transition:background 0.2s;margin-bottom:10px}
+.btn-xero:hover{background:#162440}
+.btn-demo{display:block;background:transparent;color:#6B7280;text-decoration:none;padding:12px;border-radius:10px;font-size:13px;border:1.5px solid #E2E8F0;transition:all 0.2s}
+.btn-demo:hover{border-color:#2EC4B6;color:#2EC4B6}
 .sec{font-size:11px;color:#A0ADB8;margin-top:16px}</style></head>
 <body><div class="card">
-  <div class="logo">Run<span>sheet</span></div>
+  <div class="logo">Pre<span>start</span></div>
   <div class="tagline">Stop surviving the week. Start planning the year.</div>
   ${err}
   <h2>Connect your Xero account</h2>
-  <p>Runsheet reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
+  <p>Prestart reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
   <a class="btn-xero" href="/auth">Connect with Xero →</a>
   <a class="btn-demo" href="/app?demo=true">Try with demo data (Creted Civil)</a>
   <p class="sec">🔒 Secure OAuth 2.0 with PKCE · Read-only · Disconnect anytime</p>
@@ -204,11 +204,11 @@ app.get('/select-org', requireAuth, (req, res) => {
   if (tenants.length <= 1) return res.redirect('/app');
   res.send(`<!DOCTYPE html><html><head><title>Select Org</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#F5F0E8;padding:40px 20px;display:flex;justify-content:center}
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#F7F8FC;padding:40px 20px;display:flex;justify-content:center}
 .card{background:#fff;border-radius:12px;padding:32px;max-width:480px;width:100%}
-h2{font-size:20px;color:#0F1F12;margin-bottom:8px}p{color:#5A6672;margin-bottom:20px;font-size:14px}
-.org{display:block;padding:14px 18px;border:1.5px solid #D4E6DA;border-radius:8px;margin-bottom:10px;text-decoration:none;color:#0F1F12;font-weight:600;transition:all 0.15s}
-.org:hover{border-color:#2D6A4F;background:#D8F3DC}</style></head>
+h2{font-size:20px;color:#1B2A4A;margin-bottom:8px}p{color:#6B7280;margin-bottom:20px;font-size:14px}
+.org{display:block;padding:14px 18px;border:1.5px solid #E2E8F0;border-radius:8px;margin-bottom:10px;text-decoration:none;color:#1B2A4A;font-weight:600;transition:all 0.15s}
+.org:hover{border-color:#2EC4B6;background:#E8F4F8}</style></head>
 <body><div class="card"><h2>Select Organisation</h2><p>Which Xero organisation do you want to connect?</p>
 ${tenants.map(t => `<a class="org" href="/select-org/${t.tenantId}">${t.tenantName}</a>`).join('')}
 </div></body></html>`);
@@ -419,7 +419,7 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Runsheet', version: '1.4.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Prestart', version: '1.4.0' }));
 
 app.get('/api/debug-invoices', requireAuth, async (req, res) => {
   try {
@@ -463,13 +463,13 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Runsheet — ${orgName}</title>
+<title>Prestart — ${orgName}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--dark:#0F1F12;--accent:#2D6A4F;--light:#52B788;--pale:#D8F3DC;--sand:#F5F0E8;--orange:#E07B39;--text:#1A1A1A;--muted:#5A6672;--border:#D4E6DA;--white:#fff;--danger:#C0392B;--amber:#B7690A;--r:8px}
+:root{--dark:#1B2A4A;--accent:#2EC4B6;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--orange:#FF6B35;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--white:#fff;--danger:#E63946;--amber:#F4A261;--r:8px}
 *{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:var(--sand);color:var(--text);min-height:100vh;font-size:14px}
 .topbar{background:var(--dark);height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
-.logo{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}.logo span{color:var(--light)}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}.logo span{color:var(--orange)}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .org-badge{font-size:12px;color:rgba(255,255,255,0.5)}
 .demo-badge{background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;text-transform:uppercase}
@@ -508,21 +508,21 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;text-transform:uppercase;white-space:nowrap}
 .bg{background:var(--pale);color:var(--dark)}.br{background:#FDECEA;color:var(--danger)}.ba{background:#FEF3E2;color:var(--amber)}.bgr{background:#f0f0f0;color:#666}
 .btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.15s}
-.btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{background:#C96A28}
+.btn-primary{background:var(--orange);color:#fff}.btn-primary:hover{background:#E55A2B}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--muted)}.btn-outline:hover{border-color:var(--dark);color:var(--dark)}
 .loading{text-align:center;padding:32px;color:var(--muted);font-size:14px}
-.week-row{display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:1px solid var(--sand);font-size:12px}
+.week-row{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid var(--sand);font-size:12px}
 .week-row:hover{background:var(--sand);border-radius:4px}
-.wk-lbl{width:55px;color:var(--muted);font-weight:600;flex-shrink:0}
-.wk-mo{width:50px;color:var(--muted);font-size:11px;flex-shrink:0}
-.wk-in{width:100px;color:var(--accent);font-weight:600;text-align:right;flex-shrink:0}
-.wk-out{width:100px;color:var(--danger);text-align:right;flex-shrink:0}
-.wk-bal{width:110px;font-weight:700;text-align:right;flex-shrink:0}
+.wk-lbl{width:55px;color:var(--muted);font-weight:600;flex-shrink:0;font-size:15px}
+.wk-mo{width:50px;color:var(--muted);font-size:14px;flex-shrink:0}
+.wk-in{width:100px;color:var(--accent);font-weight:700;text-align:right;flex-shrink:0;font-size:15px}
+.wk-out{width:100px;color:var(--danger);text-align:right;flex-shrink:0;font-size:15px}
+.wk-bal{width:110px;font-weight:700;text-align:right;flex-shrink:0;font-size:17px}
 .wk-bal.ok{color:var(--accent)}.wk-bal.low{color:var(--amber)}.wk-bal.neg{color:var(--danger)}
 .wk-bar{flex:1;display:flex;gap:2px;align-items:center}
-.bar-in{height:10px;background:var(--light);border-radius:2px;opacity:0.8}
-.bar-out{height:10px;background:rgba(224,123,57,0.7);border-radius:2px}
-.danger-row{background:rgba(192,57,43,0.06);border-radius:4px}.amber-row{background:rgba(183,105,10,0.05);border-radius:4px}
+.bar-in{height:14px;background:var(--light);border-radius:2px;opacity:0.8}
+.bar-out{height:14px;background:rgba(255,107,53,0.7);border-radius:2px}
+.danger-row{background:rgba(230,57,70,0.06);border-radius:4px}.amber-row{background:rgba(244,162,97,0.07);border-radius:4px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
 .modal{background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 12px 48px rgba(0,0,0,0.2);margin:auto}
@@ -542,12 +542,19 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 .fc-popup{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:14px 16px;z-index:200;min-width:210px;max-width:340px;font-size:12px;line-height:1.7}
 .fc-popup-title{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--sand);padding-bottom:5px}
 .fc-popup-row{display:flex;justify-content:space-between;gap:12px}.fc-popup-row span:last-child{font-weight:600;white-space:nowrap}
-@media(max-width:768px){.sidebar{display:none}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px;touch-action:manipulation}
+.hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150}
+.sidebar-close{display:none;position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);touch-action:manipulation}
+@media(max-width:768px){.hamburger{display:flex}.sidebar{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;padding-top:16px}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.sidebar-close{display:block}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}.dash-cards{grid-template-columns:1fr!important}.forecast-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td,th{padding:6px 8px!important}.btn,.btn-sm{touch-action:manipulation}}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div class="topbar">
-  <div class="logo">Run<span>sheet</span></div>
+  <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
+  <div class="logo">Pre<span>start</span></div>
   <div class="topbar-right">
     <span class="org-badge">${orgName}</span>
     ${isDemo ? '<span class="demo-badge">Demo</span>' : ''}
@@ -556,7 +563,8 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
   </div>
 </div>
 <div class="layout">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
+    <button class="sidebar-close" onclick="toggleSidebar()">×</button>
     <div class="balance-box">
       <div class="balance-lbl">Opening Balance</div>
       <div class="balance-val" id="sidebar-balance">...</div>
@@ -580,7 +588,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-sub" id="dash-sub">Loading from Xero...</div>
       <div id="dash-alerts"></div>
       <div class="stats" id="dash-stats"><div class="loading">Fetching your Xero data...</div></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+      <div class="dash-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
         <div class="card"><div class="card-hdr"><span class="card-title">📥 Due In — Next 30 Days</span></div><div class="card-body" id="dash-in"><div class="loading">Loading...</div></div></div>
         <div class="card"><div class="card-hdr"><span class="card-title">📤 Due Out — Next 30 Days</span></div><div class="card-body" id="dash-out"><div class="loading">Loading...</div></div></div>
       </div>
@@ -596,9 +604,9 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
             Alert threshold: <input type="number" id="threshold" value="10000" style="width:90px;padding:4px 8px;border:1.5px solid var(--border);border-radius:5px;font-size:12px" onchange="buildForecast()">
           </div>
         </div>
-        <div class="card-body" style="overflow-x:auto">
+        <div class="card-body forecast-scroll">
           <div style="min-width:700px">
-            <div style="display:flex;gap:8px;padding:6px 4px;border-bottom:2px solid var(--dark);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">
+            <div style="display:flex;gap:8px;padding:6px 4px;border-bottom:2px solid var(--dark);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)">
               <div style="width:55px">Week</div><div style="width:50px">Month</div>
               <div style="width:100px;text-align:right">Inflows</div>
               <div style="width:100px;text-align:right">Outflows</div>
@@ -645,11 +653,11 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         <div class="card-body" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
           <div class="form-field" style="min-width:180px">
             <label>ATO Opening Balance ($)</label>
-            <input type="number" id="ato-opening" step="0.01" placeholder="0.00" onchange="saveATOSetting('rs_ato_opening', this.value); renderATO()">
+            <input type="number" id="ato-opening" step="0.01" placeholder="0.00" onchange="saveATOSetting('ps_ato_opening', this.value); renderATO()">
           </div>
           <div class="form-field" style="min-width:180px">
             <label>BAS Lodgement</label>
-            <select id="ato-agent-toggle" onchange="saveATOSetting('rs_ato_agent', this.value); renderATO()">
+            <select id="ato-agent-toggle" onchange="saveATOSetting('ps_ato_agent', this.value); renderATO()">
               <option value="agent">BAS Agent (extended dates)</option>
               <option value="self">Self-lodged</option>
             </select>
@@ -674,7 +682,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         <div class="card-body" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
           <div class="form-field" style="min-width:200px">
             <label>PAYG Payment Frequency</label>
-            <select id="payroll-payg-freq" onchange="savePayrollSetting('rs_payroll_payg_freq', this.value); renderPayrollUpcoming()">
+            <select id="payroll-payg-freq" onchange="savePayrollSetting('ps_payroll_payg_freq', this.value); renderPayrollUpcoming()">
               <option value="monthly">Monthly (default)</option>
               <option value="weekly">Weekly</option>
             </select>
@@ -688,7 +696,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
           </div>
           <div class="form-field" style="min-width:200px">
             <label>Manual Weekly Override ($)</label>
-            <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('rs_payroll_weekly_override', this.value); loadPayroll()">
+            <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('ps_payroll_weekly_override', this.value); loadPayroll()">
             <span style="font-size:10px;color:var(--muted);margin-top:2px">Used if Xero payroll unavailable</span>
           </div>
           <button class="btn btn-outline" onclick="loadPayroll()" style="margin-top:18px">🔄 Refresh from Xero</button>
@@ -771,7 +779,20 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 <div class="toast-container" id="toasts"></div>
 <script>
 const IS_DEMO = ${isDemo};
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('rs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('rs_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
+// Migrate old rs_ localStorage keys to ps_ (one-time)
+(function(){
+  const migrated = localStorage.getItem('ps_migrated');
+  if (!migrated) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('rs_') && !localStorage.getItem('ps_' + key.slice(3))) {
+        localStorage.setItem('ps_' + key.slice(3), localStorage.getItem(key));
+      }
+    }
+    localStorage.setItem('ps_migrated', '1');
+  }
+})();
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('ps_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('ps_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -929,8 +950,8 @@ async function buildForecast() {
   const weeklyNet = payroll.avgWeekly.net || 0;
   const weeklySuper = payroll.avgWeekly.super || 0;
   const weeklyPayg = payroll.avgWeekly.payg || 0;
-  const paygFreq = payroll.paygFrequency || getPayrollSetting('rs_payroll_payg_freq', 'monthly');
-  const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
+  const paygFreq = payroll.paygFrequency || getPayrollSetting('ps_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
   const hasPayrollData = weeklyNet > 0;
   const effectiveWeeklyOut = hasPayrollData ? (weeklyNet + weeklySuper) : (manualOverride > 0 ? manualOverride : 0);
   const effectiveWeeklyPayg = hasPayrollData ? weeklyPayg : (manualOverride > 0 ? Math.round(manualOverride * 0.20) : 0);
@@ -1034,14 +1055,14 @@ async function loadPayroll() {
   // Restore settings
   const freqEl = document.getElementById('payroll-payg-freq');
   const overrideEl = document.getElementById('payroll-override');
-  if (freqEl) freqEl.value = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
-  if (overrideEl) overrideEl.value = getPayrollSetting('rs_payroll_weekly_override', '');
+  if (freqEl) freqEl.value = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
+  if (overrideEl) overrideEl.value = getPayrollSetting('ps_payroll_weekly_override', '');
   try {
     const data = await api('/api/payroll');
     const runs = data.payRuns || [];
     const summary = data.summary;
-    const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
-    const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+    const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
+    const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
 
     // Store in D.payroll for forecast
     if (summary) {
@@ -1121,7 +1142,7 @@ function renderPayrollUpcoming() {
   const el = document.getElementById('payroll-upcoming');
   if (!el || !D.payroll) return;
   const avg = D.payroll.avgWeekly;
-  const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
+  const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
   const runs = D.payroll.payRuns || [];
   const lastPayDate = runs.length > 0 ? runs[0].paymentDate : null;
   const nextWageDate = lastPayDate ? getNextWeeklyDate(lastPayDate) : '\u2014';
@@ -1174,9 +1195,9 @@ function populateATOPayg(payRuns) {
     qTotals[qKey] = (qTotals[qKey] || 0) + r.paygWithholding;
   });
   Object.entries(qTotals).forEach(([qKey, total]) => {
-    const storageKey = 'rs_ato_payg_wh_' + qKey;
+    const storageKey = 'ps_ato_payg_wh_' + qKey;
     const existing = localStorage.getItem(storageKey);
-    const autoKey = 'rs_ato_payg_wh_auto_' + qKey;
+    const autoKey = 'ps_ato_payg_wh_auto_' + qKey;
     if (!existing || existing === '0' || localStorage.getItem(autoKey) === 'true') {
       localStorage.setItem(storageKey, Math.round(total).toString());
       localStorage.setItem(autoKey, 'true');
@@ -1193,8 +1214,8 @@ async function loadATO() {
   // Restore settings
   const openingEl = document.getElementById('ato-opening');
   const agentEl = document.getElementById('ato-agent-toggle');
-  openingEl.value = getATOSetting('rs_ato_opening', '');
-  agentEl.value = getATOSetting('rs_ato_agent', 'agent');
+  openingEl.value = getATOSetting('ps_ato_opening', '');
+  agentEl.value = getATOSetting('ps_ato_agent', 'agent');
   try {
     const data = await api('/api/ato');
     D.atoQuarters = data.quarters || [];
@@ -1209,8 +1230,8 @@ async function loadATO() {
 function renderATO() {
   const quarters = D.atoQuarters;
   if (!quarters || quarters.length === 0) { document.getElementById('ato-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No ATO data available</td></tr>'; document.getElementById('ato-stats').innerHTML = ''; return; }
-  const isAgent = getATOSetting('rs_ato_agent', 'agent') === 'agent';
-  const openingBal = parseFloat(getATOSetting('rs_ato_opening', '0')) || 0;
+  const isAgent = getATOSetting('ps_ato_agent', 'agent') === 'agent';
+  const openingBal = parseFloat(getATOSetting('ps_ato_opening', '0')) || 0;
   let rolling = openingBal;
   const now = new Date();
   let nextDue = null, nextAmt = null, totalLiability = openingBal;
@@ -1225,8 +1246,8 @@ function renderATO() {
 
   const rows = quarters.map(q => {
     const qKey = q.fy + '-' + q.q;
-    const paygWH = parseFloat(getATOSetting('rs_ato_payg_wh_' + qKey, '0')) || 0;
-    const paygInst = parseFloat(getATOSetting('rs_ato_payg_inst_' + qKey, '0')) || 0;
+    const paygWH = parseFloat(getATOSetting('ps_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('ps_ato_payg_inst_' + qKey, '0')) || 0;
     const basPayable = q.netGST + paygWH + paygInst;
     rolling += basPayable;
     totalLiability += basPayable;
@@ -1242,8 +1263,8 @@ function renderATO() {
       <td style="color:var(--accent)">\${fc(q.gstCollected)}</td>
       <td style="color:var(--danger)">\${fc(q.gstPaid)}</td>
       <td><b>\${fc(q.netGST)}</b></td>
-      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('rs_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
-      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('rs_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('ps_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('ps_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
       <td><b style="color:\${basPayable>0?'var(--danger)':'var(--accent)'};">\${fc(basPayable)}</b></td>
       <td style="font-size:12px;\${!isPast&&dueDateObj<new Date(Date.now()+30*86400000)?'color:var(--amber);font-weight:700':''}">\${dueDate}</td>
       <td><b style="color:\${rolling>0?'var(--danger)':'var(--accent)'};">\${fc(rolling)}</b></td>
@@ -1259,11 +1280,11 @@ function renderATO() {
 function getATOBASOutflows() {
   // Returns array of {date, amount, label} for forecast integration
   const quarters = D.atoQuarters || [];
-  const isAgent = getATOSetting('rs_ato_agent', 'agent') === 'agent';
+  const isAgent = getATOSetting('ps_ato_agent', 'agent') === 'agent';
   return quarters.map(q => {
     const qKey = q.fy + '-' + q.q;
-    const paygWH = parseFloat(getATOSetting('rs_ato_payg_wh_' + qKey, '0')) || 0;
-    const paygInst = parseFloat(getATOSetting('rs_ato_payg_inst_' + qKey, '0')) || 0;
+    const paygWH = parseFloat(getATOSetting('ps_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('ps_ato_payg_inst_' + qKey, '0')) || 0;
     const basPayable = q.netGST + paygWH + paygInst;
     const dueDate = isAgent ? q.dueAgent : q.dueNonAgent;
     return { date: dueDate, amount: basPayable, label: 'ATO BAS ' + q.q + ' (' + q.fy + ')' };
@@ -1319,11 +1340,11 @@ function saveJob() {
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
     costs:document.getElementById('job-costs').value,terms,paymentDate};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
-  D.jobs.push(j);localStorage.setItem('rs_jobs',JSON.stringify(D.jobs));
+  D.jobs.push(j);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));
   closeModal('job-modal');renderJobs();buildForecast();toast('Job added ✓');
 }
 
-function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('rs_jobs',JSON.stringify(D.jobs));renderJobs();toast('Removed');}
+function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));renderJobs();toast('Removed');}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
@@ -1331,7 +1352,7 @@ function toast(msg){const tc=document.getElementById('toasts'),t=document.create
 
 // ── DIRECT DEBITS ──────────────────────────────────────────────────────────
 function loadDebits() {
-  D.debits = JSON.parse(localStorage.getItem('rs_debits')||'[]');
+  D.debits = JSON.parse(localStorage.getItem('ps_debits')||'[]');
   renderDebits();
 }
 
@@ -1425,7 +1446,7 @@ function saveDebit() {
   } else {
     D.debits.push(d);
   }
-  localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+  localStorage.setItem('ps_debits', JSON.stringify(D.debits));
   closeModal('debit-modal');
   renderDebits();
   toast(editId ? 'Debit updated ✓' : 'Debit added ✓');
@@ -1434,7 +1455,7 @@ function saveDebit() {
 function deleteDebit(id) {
   if (!confirm('Remove this direct debit?')) return;
   D.debits = D.debits.filter(d => d.id !== id);
-  localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+  localStorage.setItem('ps_debits', JSON.stringify(D.debits));
   renderDebits();
   toast('Removed');
 }
@@ -1443,7 +1464,7 @@ function exportDebits() {
   const blob = new Blob([JSON.stringify(D.debits, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'runsheet-direct-debits.json';
+  a.download = 'prestart-direct-debits.json';
   a.click();
   toast('Exported ✓');
 }
@@ -1458,7 +1479,7 @@ function handleDebitImport(e) {
       const data = JSON.parse(ev.target.result);
       if (Array.isArray(data)) {
         D.debits = data;
-        localStorage.setItem('rs_debits', JSON.stringify(D.debits));
+        localStorage.setItem('ps_debits', JSON.stringify(D.debits));
         renderDebits();
         toast('Imported ' + data.length + ' debits ✓');
       } else { alert('Invalid format — expected JSON array'); }
@@ -1501,8 +1522,8 @@ loadDashboard();
 api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(() => {});
 api('/api/payroll').then(data => {
   const summary = data.summary;
-  const paygFreq = getPayrollSetting('rs_payroll_payg_freq', 'monthly');
-  const manualOverride = parseFloat(getPayrollSetting('rs_payroll_weekly_override', '0')) || 0;
+  const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
   if (summary) {
     D.payroll = { payRuns: data.payRuns || [], avgWeekly: { gross: summary.averageWeeklyGross, super: summary.averageWeeklySuper, payg: summary.averageWeeklyPAYG, net: summary.averageWeeklyNet }, paygFrequency: paygFreq, source: 'xero' };
   } else if (manualOverride > 0) {
@@ -1514,4 +1535,4 @@ api('/api/payroll').then(data => {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Runsheet v1.4 running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Prestart v1.4 running on port ${PORT}`));
