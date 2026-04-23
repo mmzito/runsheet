@@ -464,8 +464,8 @@ function buildScheduleHTML(token) {
 .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
 @media(max-width:768px){body{padding:12px}.gantt-label{width:100px;font-size:11px;padding:6px 8px}.gantt-bar{height:18px;font-size:9px}}
 </style></head><body>
-<div class="topbar"><div class="logo">Pre<span>start</span></div><span class="badge">Shared Schedule (Read Only)</span></div>
-<div class="card"><div class="card-hdr">\u{1F4CA} Job Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
+<div class="topbar"><div class="logo">Pre<span>start</span></div><span class="badge">Shared Work Schedule</span></div>
+<div class="card"><div class="card-hdr">📅 Work Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
 <div class="card"><div class="card-hdr">\u{1F3D7}\uFE0F Upcoming Jobs</div><div class="card-body" id="job-list"><div class="empty">Loading schedule...</div></div></div>
 <script>
 const COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
@@ -858,7 +858,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="alert alert-green">💡 <b>Key feature:</b> Enter jobs with payment terms to see exactly when costs land vs when money arrives.</div>
       <div style="margin:14px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-outline" id="gantt-toggle" onclick="toggleGanttView()" style="font-size:12px">📊 Gantt Chart</button>
+          <button class="btn btn-outline" id="schedule-toggle" onclick="toggleScheduleView()" style="font-size:12px">📅 Work Schedule</button>
           <button class="btn btn-outline" id="share-schedule-btn" onclick="toggleSharePanel()" style="font-size:12px">🔗 Share Schedule</button>
         </div>
         <button class="btn btn-primary" onclick="openModal('job-modal')">+ Add Job</button>
@@ -875,9 +875,9 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
           </div>
         </div>
       </div>
-      <div id="gantt-container" style="display:none">
+      <div id="schedule-container" style="display:none">
         <div class="card gantt-colors">
-          <div class="card-hdr"><span class="card-title">📊 Job Schedule — Gantt Chart</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-hdr"><span class="card-title">📅 Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
           <div class="card-body" style="padding:0">
             <div class="gantt-wrap" id="gantt-scroll">
               <div class="gantt" id="gantt-chart"></div>
@@ -1453,7 +1453,7 @@ function renderJobs() {
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
     <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
     <td style="font-size:12px">\${j.paymentDate||'—'}</td>
-    <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days\${gapDays>45?" ⚠":""}':'—'}</td>
+    <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' ⚠':''):'—'}</td>
     <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
     <td><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
     </tbody></table></div></div>\`;
@@ -1503,9 +1503,9 @@ function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStor
 const GANTT_COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
 let ganttOffset=0;
 
-function toggleGanttView(){
-  const el=document.getElementById('gantt-container');
-  const btn=document.getElementById('gantt-toggle');
+function toggleScheduleView(){
+  const el=document.getElementById('schedule-container');
+  const btn=document.getElementById('schedule-toggle');
   if(el.style.display==='none'){el.style.display='block';btn.classList.add('active');renderGantt();}
   else{el.style.display='none';btn.classList.remove('active');}
 }
@@ -1537,7 +1537,7 @@ function ganttNext(){ganttOffset++;renderGantt();}
 function renderGantt(){
   const el=document.getElementById('gantt-chart');
   const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
-  if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Gantt chart.</div>';return;}
+  if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Work Schedule.</div>';return;}
   const sorted=[...jobs].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   const today=new Date();
   today.setHours(0,0,0,0);
