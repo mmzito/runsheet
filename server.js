@@ -419,7 +419,101 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Prestart', version: '1.4.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Prestart', version: '1.5.0' }));
+
+// ── SHARED SCHEDULE (read-only, no auth) ──────────────────────────────────────
+app.get('/schedule/:token', (req, res) => {
+  res.send(buildScheduleHTML(req.params.token));
+});
+
+function buildScheduleHTML(token) {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prestart — Job Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#1B2A4A;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--danger:#E63946;--amber:#F4A261}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:var(--sand);min-height:100vh;padding:20px}
+.topbar{background:var(--dark);padding:16px 24px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'DM Serif Display',serif;font-size:22px;color:#fff}.logo span{color:var(--accent)}
+.badge{font-size:11px;background:var(--pale);color:var(--dark);padding:4px 10px;border-radius:8px;font-weight:600}
+.card{background:#fff;border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
+.card-hdr{padding:13px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px}
+.card-body{padding:18px}
+.job{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--sand);align-items:flex-start}
+.job:last-child{border-bottom:none}
+.job-color{width:6px;border-radius:3px;flex-shrink:0;align-self:stretch;min-height:40px}
+.job-info{flex:1}
+.job-name{font-weight:700;font-size:15px;color:var(--dark)}
+.job-client{font-size:12px;color:var(--muted)}
+.job-dates{font-size:13px;margin-top:4px;color:var(--text)}
+.gantt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.gantt{position:relative;min-height:80px}
+.gantt-header{display:flex;border-bottom:2px solid var(--dark);background:#fff;z-index:2}
+.gantt-month{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:8px 0;border-right:1px solid var(--border);flex-shrink:0}
+.gantt-month:last-child{border-right:none}
+.gantt-body{position:relative}
+.gantt-row{display:flex;align-items:center;border-bottom:1px solid var(--sand);min-height:40px;position:relative}
+.gantt-label{width:160px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--border)}
+.gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3}
+.gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase}
+.gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--border);opacity:0.5}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+@media(max-width:768px){body{padding:12px}.gantt-label{width:100px;font-size:11px;padding:6px 8px}.gantt-bar{height:18px;font-size:9px}}
+</style></head><body>
+<div class="topbar"><div class="logo">Pre<span>start</span></div><span class="badge">Shared Schedule (Read Only)</span></div>
+<div class="card"><div class="card-hdr">\u{1F4CA} Job Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
+<div class="card"><div class="card-hdr">\u{1F3D7}\uFE0F Upcoming Jobs</div><div class="card-body" id="job-list"><div class="empty">Loading schedule...</div></div></div>
+<script>
+const COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
+const token='${token}';
+try{
+  const raw=atob(decodeURIComponent(token));
+  const jobs=JSON.parse(raw).filter(j=>j.startDate&&j.endDate);
+  if(jobs.length===0){document.getElementById('job-list').innerHTML='<div class="empty">No jobs with dates in the schedule yet.</div>';document.getElementById('gantt-chart').innerHTML='<div class="empty">No jobs to display.</div>';}
+  else{renderSharedGantt(jobs);renderJobList(jobs);}
+}catch(e){document.getElementById('job-list').innerHTML='<div class="empty">Invalid or expired schedule link.</div>';}
+function renderJobList(jobs){
+  const el=document.getElementById('job-list');
+  el.innerHTML=jobs.sort((a,b)=>new Date(a.startDate)-new Date(b.startDate)).map((j,i)=>{
+    const s=new Date(j.startDate),e=new Date(j.endDate);
+    const fmt=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'});
+    const dur=Math.ceil((e-s)/86400000);
+    return '<div class="job"><div class="job-color" style="background:'+COLORS[i%COLORS.length]+'"></div><div class="job-info"><div class="job-name">'+j.name+'</div>'+(j.client?'<div class="job-client">'+j.client+'</div>':'')+'<div class="job-dates">'+fmt(s)+' \u2192 '+fmt(e)+' ('+dur+' days)</div></div></div>';
+  }).join('');
+}
+function renderSharedGantt(jobs){
+  const sorted=jobs.sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
+  const earliest=new Date(sorted[0].startDate);
+  let latest=new Date(sorted[0].endDate);
+  sorted.forEach(j=>{const e=new Date(j.endDate);if(e>latest)latest=e;});
+  const viewStart=new Date(earliest.getFullYear(),earliest.getMonth(),1);
+  const viewEnd=new Date(latest.getFullYear(),latest.getMonth()+2,0);
+  const totalDays=Math.ceil((viewEnd-viewStart)/86400000);
+  const dayW=Math.max(12,Math.min(40,800/totalDays));
+  const trackW=totalDays*dayW;
+  const labelW=160;
+  let html='<div class="gantt-header"><div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted)">JOB</div><div style="display:flex;width:'+trackW+'px">';
+  let m=new Date(viewStart);
+  while(m<=viewEnd){const daysInMonth=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();const monthStart=new Date(m.getFullYear(),m.getMonth(),1);const mDays=Math.min(daysInMonth,Math.ceil((viewEnd-monthStart)/86400000));html+='<div class="gantt-month" style="width:'+(mDays*dayW)+'px">'+m.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})+'</div>';m=new Date(m.getFullYear(),m.getMonth()+1,1);}
+  html+='</div></div><div class="gantt-body" style="position:relative">';
+  const today=new Date();const todayOff=Math.ceil((today-viewStart)/86400000);
+  if(todayOff>=0&&todayOff<=totalDays){html+='<div class="gantt-today" style="left:'+(labelW+todayOff*dayW)+'px"></div>';}
+  sorted.forEach((j,i)=>{
+    const s=new Date(j.startDate),e=new Date(j.endDate);
+    const offStart=Math.max(0,Math.ceil((s-viewStart)/86400000));
+    const offEnd=Math.ceil((e-viewStart)/86400000);
+    const barL=offStart*dayW;const barW=Math.max(dayW,(offEnd-offStart)*dayW);
+    html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"><div class="gantt-bar" style="left:'+barL+'px;width:'+barW+'px;background:'+COLORS[i%COLORS.length]+'">'+j.name+'</div></div></div>';
+  });
+  html+='</div>';
+  document.getElementById('gantt-chart').innerHTML=html;
+}
+</script></body></html>`;
+}
 
 app.get('/api/debug-invoices', requireAuth, async (req, res) => {
   try {
@@ -542,6 +636,30 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 .fc-popup{position:fixed;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:14px 16px;z-index:200;min-width:210px;max-width:340px;font-size:12px;line-height:1.7}
 .fc-popup-title{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--sand);padding-bottom:5px}
 .fc-popup-row{display:flex;justify-content:space-between;gap:12px}.fc-popup-row span:last-child{font-weight:600;white-space:nowrap}
+.gantt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.gantt{position:relative;min-height:120px}
+.gantt-header{display:flex;border-bottom:2px solid var(--dark);position:sticky;top:0;background:#fff;z-index:2}
+.gantt-month{text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:8px 0;border-right:1px solid var(--border);flex-shrink:0}
+.gantt-month:last-child{border-right:none}
+.gantt-body{position:relative}
+.gantt-row{display:flex;align-items:center;border-bottom:1px solid var(--sand);min-height:40px;position:relative}
+.gantt-row:hover{background:var(--sand)}
+.gantt-label{width:180px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:sticky;left:0;background:inherit;z-index:1;border-right:1px solid var(--border)}
+.gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px;cursor:default;transition:opacity 0.15s;min-width:8px}
+.gantt-bar:hover{opacity:0.85}
+.gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3;pointer-events:none}
+.gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:0.08em}
+.gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--border);opacity:0.5;pointer-events:none}
+.gantt-colors{--gc1:#FF6B35;--gc2:#2EC4B6;--gc3:#6366F1;--gc4:#F59E0B;--gc5:#EC4899;--gc6:#14B8A6;--gc7:#8B5CF6;--gc8:#F97316}
+.gantt-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px}
+.gantt-legend-item{display:flex;align-items:center;gap:6px}
+.gantt-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.share-link-box{display:flex;align-items:center;gap:8px;margin-top:12px}
+.share-link-box input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--sand)}
+.share-link-box button{white-space:nowrap}
+@media(max-width:768px){.gantt-label{width:120px;font-size:11px;padding:6px 8px}.gantt-bar{font-size:9px;height:18px}}
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px;touch-action:manipulation}
 .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150}
@@ -738,7 +856,35 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-title">Job Pipeline</div>
       <div class="page-sub">Add upcoming jobs to see payment timing in your 52-week forecast</div>
       <div class="alert alert-green">💡 <b>Key feature:</b> Enter jobs with payment terms to see exactly when costs land vs when money arrives.</div>
-      <div style="margin:14px 0;display:flex;justify-content:flex-end"><button class="btn btn-primary" onclick="openModal('job-modal')">+ Add Job</button></div>
+      <div style="margin:14px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-outline" id="gantt-toggle" onclick="toggleGanttView()" style="font-size:12px">📊 Gantt Chart</button>
+          <button class="btn btn-outline" id="share-schedule-btn" onclick="toggleSharePanel()" style="font-size:12px">🔗 Share Schedule</button>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('job-modal')">+ Add Job</button>
+      </div>
+      <div id="share-panel" style="display:none">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-hdr"><span class="card-title">🔗 Share Schedule with Crew</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Share a read-only view of your job schedule. Crew leaders can see upcoming work — no login required.</p>
+            <div class="share-link-box">
+              <input type="text" id="share-url" readonly>
+              <button class="btn btn-primary" onclick="copyShareLink()" style="font-size:12px">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="gantt-container" style="display:none">
+        <div class="card gantt-colors">
+          <div class="card-hdr"><span class="card-title">📊 Job Schedule — Gantt Chart</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-body" style="padding:0">
+            <div class="gantt-wrap" id="gantt-scroll">
+              <div class="gantt" id="gantt-chart"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div id="jobs-content"></div>
     </div>
   </main>
@@ -1348,10 +1494,97 @@ function saveJob() {
     costs:document.getElementById('job-costs').value,terms,paymentDate};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
   D.jobs.push(j);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));
-  closeModal('job-modal');renderJobs();buildForecast();toast('Job added ✓');
+  closeModal('job-modal');renderJobs();renderGantt();buildForecast();toast('Job added ✓');
 }
 
-function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));renderJobs();toast('Removed');}
+function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));renderJobs();renderGantt();toast('Removed');}
+
+// ── GANTT CHART ───────────────────────────────────────────────────────────
+const GANTT_COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
+let ganttOffset=0;
+
+function toggleGanttView(){
+  const el=document.getElementById('gantt-container');
+  const btn=document.getElementById('gantt-toggle');
+  if(el.style.display==='none'){el.style.display='block';btn.classList.add('active');renderGantt();}
+  else{el.style.display='none';btn.classList.remove('active');}
+}
+
+function toggleSharePanel(){
+  const el=document.getElementById('share-panel');
+  if(el.style.display==='none'){
+    el.style.display='block';
+    generateShareLink();
+  } else { el.style.display='none'; }
+}
+
+function generateShareLink(){
+  const shareJobs=D.jobs.filter(j=>j.startDate&&j.endDate).map(j=>({name:j.name,client:j.client||'',startDate:j.startDate,endDate:j.endDate}));
+  const token=encodeURIComponent(btoa(JSON.stringify(shareJobs)));
+  const url=window.location.origin+'/schedule/'+token;
+  document.getElementById('share-url').value=url;
+}
+
+function copyShareLink(){
+  const input=document.getElementById('share-url');
+  input.select();input.setSelectionRange(0,99999);
+  navigator.clipboard.writeText(input.value).then(()=>toast('Link copied \u2713')).catch(()=>{document.execCommand('copy');toast('Link copied \u2713');});
+}
+
+function ganttPrev(){ganttOffset--;renderGantt();}
+function ganttNext(){ganttOffset++;renderGantt();}
+
+function renderGantt(){
+  const el=document.getElementById('gantt-chart');
+  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
+  if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Gantt chart.</div>';return;}
+  const sorted=jobs.sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
+  const today=new Date();
+  // Calculate view window: 6 months from today + offset
+  const baseMonth=new Date(today.getFullYear(),today.getMonth()+ganttOffset,1);
+  const viewStart=new Date(baseMonth.getFullYear(),baseMonth.getMonth()-1,1);
+  const viewEnd=new Date(baseMonth.getFullYear(),baseMonth.getMonth()+5,0);
+  const totalDays=Math.ceil((viewEnd-viewStart)/86400000);
+  const dayW=Math.max(8,Math.min(40,900/totalDays));
+  const trackW=totalDays*dayW;
+  const labelW=180;
+  // Header months
+  let html='<div class="gantt-header"><div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);border-right:1px solid var(--border)">JOB</div><div style="display:flex;width:'+trackW+'px">';
+  let m=new Date(viewStart);
+  while(m<=viewEnd){
+    const monthEnd=new Date(m.getFullYear(),m.getMonth()+1,0);
+    const mStart=m<viewStart?viewStart:m;
+    const mEnd=monthEnd>viewEnd?viewEnd:monthEnd;
+    const mDays=Math.ceil((mEnd-mStart)/86400000)+1;
+    html+='<div class="gantt-month" style="width:'+(mDays*dayW)+'px">'+m.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})+'</div>';
+    m=new Date(m.getFullYear(),m.getMonth()+1,1);
+  }
+  html+='</div></div><div class="gantt-body" style="position:relative;min-height:'+(sorted.length*42+20)+'px">';
+  // Today line
+  const todayOff=Math.ceil((today-viewStart)/86400000);
+  if(todayOff>=0&&todayOff<=totalDays){html+='<div class="gantt-today" style="left:'+(labelW+todayOff*dayW)+'px"></div>';}
+  // Month gridlines
+  let gm=new Date(viewStart.getFullYear(),viewStart.getMonth()+1,1);
+  while(gm<=viewEnd){const off=Math.ceil((gm-viewStart)/86400000);html+='<div class="gantt-gridline" style="left:'+(labelW+off*dayW)+'px"></div>';gm=new Date(gm.getFullYear(),gm.getMonth()+1,1);}
+  // Job bars
+  sorted.forEach((j,i)=>{
+    const s=new Date(j.startDate),e=new Date(j.endDate);
+    const offStart=Math.max(0,Math.ceil((s-viewStart)/86400000));
+    const offEnd=Math.min(totalDays,Math.ceil((e-viewStart)/86400000));
+    if(offEnd<0||offStart>totalDays){html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"></div></div>';return;}
+    const barL=offStart*dayW;
+    const barW=Math.max(dayW,(offEnd-offStart)*dayW);
+    const dur=Math.ceil((e-s)/86400000);
+    const color=GANTT_COLORS[i%GANTT_COLORS.length];
+    html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"><div class="gantt-bar" style="left:'+barL+'px;width:'+barW+'px;background:'+color+'" title="'+j.name+': '+s.toLocaleDateString('en-AU')+' \u2013 '+e.toLocaleDateString('en-AU')+' ('+dur+' days)">'+j.name+'</div></div></div>';
+  });
+  html+='</div>';
+  // Legend
+  html+='<div class="gantt-legend" style="padding:12px 18px">';
+  sorted.forEach((j,i)=>{html+='<div class="gantt-legend-item"><div class="gantt-legend-dot" style="background:'+GANTT_COLORS[i%GANTT_COLORS.length]+'"></div>'+j.name+'</div>';});
+  html+='</div>';
+  el.innerHTML=html;
+}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
