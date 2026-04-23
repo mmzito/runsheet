@@ -1538,52 +1538,82 @@ function renderGantt(){
   const el=document.getElementById('gantt-chart');
   const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
   if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Gantt chart.</div>';return;}
-  const sorted=jobs.sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
+  const sorted=[...jobs].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   const today=new Date();
-  // Calculate view window: 6 months from today + offset
+  today.setHours(0,0,0,0);
+  // View window: 3 months from base, scrollable
   const baseMonth=new Date(today.getFullYear(),today.getMonth()+ganttOffset,1);
-  const viewStart=new Date(baseMonth.getFullYear(),baseMonth.getMonth()-1,1);
-  const viewEnd=new Date(baseMonth.getFullYear(),baseMonth.getMonth()+5,0);
-  const totalDays=Math.ceil((viewEnd-viewStart)/86400000);
-  const dayW=Math.max(8,Math.min(40,900/totalDays));
+  const viewStart=new Date(baseMonth.getFullYear(),baseMonth.getMonth(),1);
+  const viewEnd=new Date(baseMonth.getFullYear(),baseMonth.getMonth()+3,0);
+  const totalDays=Math.ceil((viewEnd-viewStart)/86400000)+1;
+  const isMobile=window.innerWidth<=768;
+  const dayW=isMobile?14:Math.max(18,Math.min(40,900/totalDays));
   const trackW=totalDays*dayW;
-  const labelW=180;
-  // Header months
-  let html='<div class="gantt-header"><div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted);border-right:1px solid var(--border)">JOB</div><div style="display:flex;width:'+trackW+'px">';
-  let m=new Date(viewStart);
-  while(m<=viewEnd){
-    const monthEnd=new Date(m.getFullYear(),m.getMonth()+1,0);
-    const mStart=m<viewStart?viewStart:m;
-    const mEnd=monthEnd>viewEnd?viewEnd:monthEnd;
-    const mDays=Math.ceil((mEnd-mStart)/86400000)+1;
-    html+='<div class="gantt-month" style="width:'+(mDays*dayW)+'px">'+m.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})+'</div>';
-    m=new Date(m.getFullYear(),m.getMonth()+1,1);
+  const labelW=isMobile?110:180;
+  const totalW=labelW+trackW;
+  // Month headers
+  let monthsHtml='';
+  let mc=new Date(viewStart);
+  while(mc<=viewEnd){
+    const mEnd=new Date(mc.getFullYear(),mc.getMonth()+1,0);
+    const clipEnd=mEnd>viewEnd?viewEnd:mEnd;
+    const mDays=Math.ceil((clipEnd-mc)/86400000)+1;
+    monthsHtml+='<div style="width:'+(mDays*dayW)+'px;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:10px 0;border-right:1px solid var(--border);flex-shrink:0">'+mc.toLocaleDateString('en-AU',{month:'short',year:'numeric'})+'</div>';
+    mc=new Date(mc.getFullYear(),mc.getMonth()+1,1);
   }
-  html+='</div></div><div class="gantt-body" style="position:relative;min-height:'+(sorted.length*42+20)+'px">';
-  // Today line
-  const todayOff=Math.ceil((today-viewStart)/86400000);
-  if(todayOff>=0&&todayOff<=totalDays){html+='<div class="gantt-today" style="left:'+(labelW+todayOff*dayW)+'px"></div>';}
+  let html='<div style="display:inline-block;min-width:'+totalW+'px">';
+  // Header
+  html+='<div style="display:flex;border-bottom:2px solid var(--dark);background:#fff;position:sticky;top:0;z-index:2">';
+  html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);border-right:1px solid var(--border)">JOB</div>';
+  html+='<div style="display:flex">'+monthsHtml+'</div></div>';
+  // Body
+  html+='<div style="position:relative">';
   // Month gridlines
   let gm=new Date(viewStart.getFullYear(),viewStart.getMonth()+1,1);
-  while(gm<=viewEnd){const off=Math.ceil((gm-viewStart)/86400000);html+='<div class="gantt-gridline" style="left:'+(labelW+off*dayW)+'px"></div>';gm=new Date(gm.getFullYear(),gm.getMonth()+1,1);}
-  // Job bars
+  while(gm<=viewEnd){const off=Math.ceil((gm-viewStart)/86400000);html+='<div style="position:absolute;top:0;bottom:0;left:'+(labelW+off*dayW)+'px;width:1px;background:var(--border);opacity:0.4;pointer-events:none"></div>';gm=new Date(gm.getFullYear(),gm.getMonth()+1,1);}
+  // Today line
+  const todayOff=Math.floor((today-viewStart)/86400000);
+  if(todayOff>=0&&todayOff<=totalDays){
+    html+='<div style="position:absolute;top:0;bottom:0;left:'+(labelW+todayOff*dayW)+'px;width:2px;background:var(--danger);z-index:3;pointer-events:none"><div style="position:absolute;top:-20px;left:-14px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:0.06em">Today</div></div>';
+  }
+  // Job rows
   sorted.forEach((j,i)=>{
-    const s=new Date(j.startDate),e=new Date(j.endDate);
-    const offStart=Math.max(0,Math.ceil((s-viewStart)/86400000));
-    const offEnd=Math.min(totalDays,Math.ceil((e-viewStart)/86400000));
-    if(offEnd<0||offStart>totalDays){html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"></div></div>';return;}
-    const barL=offStart*dayW;
-    const barW=Math.max(dayW,(offEnd-offStart)*dayW);
-    const dur=Math.ceil((e-s)/86400000);
+    const s=new Date(j.startDate);s.setHours(0,0,0,0);
+    const e=new Date(j.endDate);e.setHours(0,0,0,0);
+    const offStart=Math.floor((s-viewStart)/86400000);
+    const offEnd=Math.floor((e-viewStart)/86400000);
     const color=GANTT_COLORS[i%GANTT_COLORS.length];
-    html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"><div class="gantt-bar" style="left:'+barL+'px;width:'+barW+'px;background:'+color+'" title="'+j.name+': '+s.toLocaleDateString('en-AU')+' \u2013 '+e.toLocaleDateString('en-AU')+' ('+dur+' days)">'+j.name+'</div></div></div>';
+    const dur=Math.ceil((e-s)/86400000);
+    const fmt=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    html+='<div style="display:flex;align-items:center;border-bottom:1px solid var(--sand);min-height:44px">';
+    html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
+    html+=j.name+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
+    html+='</div>';
+    // Skip if completely outside view
+    if(offEnd<0||offStart>totalDays){
+      html+='<div style="flex:1;padding:8px 12px;font-size:11px;color:var(--muted);font-style:italic">'+(offEnd<0?'\u2190 Earlier':'Later \u2192')+'</div></div>';
+      return;
+    }
+    const clampStart=Math.max(0,offStart);
+    const clampEnd=Math.min(totalDays,offEnd);
+    const barL=clampStart*dayW;
+    const barW=Math.max(dayW*2,(clampEnd-clampStart+1)*dayW);
+    html+='<div style="position:relative;height:44px;width:'+trackW+'px;display:flex;align-items:center">';
+    html+='<div style="position:absolute;left:'+barL+'px;width:'+barW+'px;height:26px;border-radius:6px;background:'+color+';display:flex;align-items:center;justify-content:center;font-size:'+(isMobile?'9':'11')+'px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;cursor:default;box-shadow:0 2px 6px rgba(0,0,0,0.15)" title="'+j.name+': '+fmt(s)+' - '+fmt(e)+' ('+dur+' days)">';
+    html+=(barW>80?j.name:dur+'d');
+    html+='</div></div></div>';
   });
   html+='</div>';
   // Legend
-  html+='<div class="gantt-legend" style="padding:12px 18px">';
-  sorted.forEach((j,i)=>{html+='<div class="gantt-legend-item"><div class="gantt-legend-dot" style="background:'+GANTT_COLORS[i%GANTT_COLORS.length]+'"></div>'+j.name+'</div>';});
-  html+='</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-top:1px solid var(--border)">';
+  sorted.forEach((j,i)=>{html+='<div style="display:flex;align-items:center;gap:6px;font-size:12px"><div style="width:12px;height:12px;border-radius:3px;background:'+GANTT_COLORS[i%GANTT_COLORS.length]+';flex-shrink:0"></div>'+j.name+'</div>';});
+  html+='</div></div>';
   el.innerHTML=html;
+  // Auto-scroll to today
+  if(todayOff>0&&todayOff<totalDays){
+    const scrollEl=document.getElementById('gantt-scroll');
+    if(scrollEl)scrollEl.scrollLeft=Math.max(0,(labelW+todayOff*dayW)-scrollEl.clientWidth/3);
+  }
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
