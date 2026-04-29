@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: prestart
+    name: headstart
     env: node
     buildCommand: npm install
     startCommand: node server.js

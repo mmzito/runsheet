@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
   store: new FileStore({ path: '/tmp/sessions', ttl: 3600, retries: 0, logFn: ()=>{} }),
-  secret: process.env.SESSION_SECRET || 'prestart-dev-secret-change-in-prod',
+  secret: process.env.SESSION_SECRET || 'headstart-dev-secret-change-in-prod',
   resave: false,
   saveUninitialized: false,
   cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
@@ -51,7 +51,7 @@ app.get('/connect', (req, res) => {
   const err = req.query.error ? `<div style="background:#FDECEA;border-left:4px solid #c0392b;padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:20px;color:#7B2222">Connection failed: ${decodeURIComponent(req.query.error)}</div>` : '';
   res.send(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prestart — Connect Xero</title>
+<title>Headstart — Connect Xero</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;background:#1B2A4A;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .card{background:#fff;border-radius:16px;padding:48px 40px;max-width:420px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
@@ -64,11 +64,11 @@ h2{font-size:18px;color:#1B2A4A;margin-bottom:10px}p{font-size:13px;color:#6B728
 .btn-demo:hover{border-color:#2EC4B6;color:#2EC4B6}
 .sec{font-size:11px;color:#A0ADB8;margin-top:16px}</style></head>
 <body><div class="card">
-  <div class="logo">Pre<span>start</span></div>
+  <div class="logo">Head<span>start</span></div>
   <div class="tagline">Stop surviving the week. Start planning the year.</div>
   ${err}
   <h2>Connect your Xero account</h2>
-  <p>Prestart reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
+  <p>Headstart reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
   <a class="btn-xero" href="/auth">Connect with Xero →</a>
   <a class="btn-demo" href="/app?demo=true">Try with demo data (Creted Civil)</a>
   <p class="sec">🔒 Secure OAuth 2.0 with PKCE · Read-only · Disconnect anytime</p>
@@ -419,7 +419,7 @@ app.get('/api/payroll', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Prestart', version: '1.5.0' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'Headstart', version: '1.5.0' }));
 
 // ── SHARED SCHEDULE (read-only, no auth) ──────────────────────────────────────
 app.get('/schedule/:token', (req, res) => {
@@ -429,7 +429,7 @@ app.get('/schedule/:token', (req, res) => {
 function buildScheduleHTML(token) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prestart — Job Schedule</title>
+<title>Headstart — Job Schedule</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--dark:#1B2A4A;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--danger:#E63946;--amber:#F4A261}
@@ -464,7 +464,7 @@ function buildScheduleHTML(token) {
 .empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
 @media(max-width:768px){body{padding:12px}.gantt-label{width:100px;font-size:11px;padding:6px 8px}.gantt-bar{height:18px;font-size:9px}}
 </style></head><body>
-<div class="topbar"><div class="logo">Pre<span>start</span></div><span class="badge">Shared Work Schedule</span></div>
+<div class="topbar"><div class="logo">Head<span>start</span></div><span class="badge">Shared Work Schedule</span></div>
 <div class="card"><div class="card-hdr">📅 Work Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
 <div class="card"><div class="card-hdr">\u{1F3D7}\uFE0F Upcoming Jobs</div><div class="card-body" id="job-list"><div class="empty">Loading schedule...</div></div></div>
 <script>
@@ -557,7 +557,7 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prestart — ${orgName}</title>
+<title>Headstart — ${orgName}</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--dark:#1B2A4A;--accent:#2EC4B6;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--orange:#FF6B35;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--white:#fff;--danger:#E63946;--amber:#F4A261;--r:8px}
@@ -672,7 +672,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 <div class="topbar">
   <button class="hamburger" onclick="toggleSidebar()" aria-label="Menu"><span></span><span></span><span></span></button>
-  <div class="logo">Pre<span>start</span></div>
+  <div class="logo">Head<span>start</span></div>
   <div class="topbar-right">
     <span class="org-badge">${orgName}</span>
     ${isDemo ? '<span class="demo-badge">Demo</span>' : ''}
@@ -771,11 +771,11 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         <div class="card-body" style="display:flex;gap:20px;align-items:center;flex-wrap:wrap">
           <div class="form-field" style="min-width:180px">
             <label>ATO Opening Balance ($)</label>
-            <input type="number" id="ato-opening" step="0.01" placeholder="0.00" onchange="saveATOSetting('ps_ato_opening', this.value); renderATO()">
+            <input type="number" id="ato-opening" step="0.01" placeholder="0.00" onchange="saveATOSetting('hs_ato_opening', this.value); renderATO()">
           </div>
           <div class="form-field" style="min-width:180px">
             <label>BAS Lodgement</label>
-            <select id="ato-agent-toggle" onchange="saveATOSetting('ps_ato_agent', this.value); renderATO()">
+            <select id="ato-agent-toggle" onchange="saveATOSetting('hs_ato_agent', this.value); renderATO()">
               <option value="agent">BAS Agent (extended dates)</option>
               <option value="self">Self-lodged</option>
             </select>
@@ -800,7 +800,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
         <div class="card-body" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
           <div class="form-field" style="min-width:200px">
             <label>PAYG Payment Frequency</label>
-            <select id="payroll-payg-freq" onchange="savePayrollSetting('ps_payroll_payg_freq', this.value); renderPayrollUpcoming()">
+            <select id="payroll-payg-freq" onchange="savePayrollSetting('hs_payroll_payg_freq', this.value); renderPayrollUpcoming()">
               <option value="monthly">Monthly (default)</option>
               <option value="weekly">Weekly</option>
             </select>
@@ -814,7 +814,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
           </div>
           <div class="form-field" style="min-width:200px">
             <label>Manual Weekly Override ($)</label>
-            <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('ps_payroll_weekly_override', this.value); loadPayroll()">
+            <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('hs_payroll_weekly_override', this.value); loadPayroll()">
             <span style="font-size:10px;color:var(--muted);margin-top:2px">Used if Xero payroll unavailable</span>
           </div>
           <button class="btn btn-outline" onclick="loadPayroll()" style="margin-top:18px">🔄 Refresh from Xero</button>
@@ -938,7 +938,20 @@ const IS_DEMO = ${isDemo};
     localStorage.setItem('ps_migrated', '1');
   }
 })();
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('ps_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('ps_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
+// Migrate old ps_ localStorage keys to hs_ (one-time)
+(function(){
+  const migrated = localStorage.getItem('hs_migrated');
+  if (!migrated) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ps_') && !localStorage.getItem('hs_' + key.slice(3))) {
+        localStorage.setItem('hs_' + key.slice(3), localStorage.getItem(key));
+      }
+    }
+    localStorage.setItem('hs_migrated', '1');
+  }
+})();
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('hs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('hs_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -1103,8 +1116,8 @@ async function buildForecast() {
   const weeklyNet = payroll.avgWeekly.net || 0;
   const weeklySuper = payroll.avgWeekly.super || 0;
   const weeklyPayg = payroll.avgWeekly.payg || 0;
-  const paygFreq = payroll.paygFrequency || getPayrollSetting('ps_payroll_payg_freq', 'monthly');
-  const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
+  const paygFreq = payroll.paygFrequency || getPayrollSetting('hs_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('hs_payroll_weekly_override', '0')) || 0;
   const hasPayrollData = weeklyNet > 0;
   const effectiveWeeklyOut = hasPayrollData ? (weeklyNet + weeklySuper) : (manualOverride > 0 ? manualOverride : 0);
   const effectiveWeeklyPayg = hasPayrollData ? weeklyPayg : (manualOverride > 0 ? Math.round(manualOverride * 0.20) : 0);
@@ -1208,14 +1221,14 @@ async function loadPayroll() {
   // Restore settings
   const freqEl = document.getElementById('payroll-payg-freq');
   const overrideEl = document.getElementById('payroll-override');
-  if (freqEl) freqEl.value = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
-  if (overrideEl) overrideEl.value = getPayrollSetting('ps_payroll_weekly_override', '');
+  if (freqEl) freqEl.value = getPayrollSetting('hs_payroll_payg_freq', 'monthly');
+  if (overrideEl) overrideEl.value = getPayrollSetting('hs_payroll_weekly_override', '');
   try {
     const data = await api('/api/payroll');
     const runs = data.payRuns || [];
     const summary = data.summary;
-    const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
-    const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
+    const manualOverride = parseFloat(getPayrollSetting('hs_payroll_weekly_override', '0')) || 0;
+    const paygFreq = getPayrollSetting('hs_payroll_payg_freq', 'monthly');
 
     // Store in D.payroll for forecast
     if (summary) {
@@ -1295,7 +1308,7 @@ function renderPayrollUpcoming() {
   const el = document.getElementById('payroll-upcoming');
   if (!el || !D.payroll) return;
   const avg = D.payroll.avgWeekly;
-  const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
+  const paygFreq = getPayrollSetting('hs_payroll_payg_freq', 'monthly');
   const runs = D.payroll.payRuns || [];
   const lastPayDate = runs.length > 0 ? runs[0].paymentDate : null;
   const nextWageDate = lastPayDate ? getNextWeeklyDate(lastPayDate) : '\u2014';
@@ -1348,9 +1361,9 @@ function populateATOPayg(payRuns) {
     qTotals[qKey] = (qTotals[qKey] || 0) + r.paygWithholding;
   });
   Object.entries(qTotals).forEach(([qKey, total]) => {
-    const storageKey = 'ps_ato_payg_wh_' + qKey;
+    const storageKey = 'hs_ato_payg_wh_' + qKey;
     const existing = localStorage.getItem(storageKey);
-    const autoKey = 'ps_ato_payg_wh_auto_' + qKey;
+    const autoKey = 'hs_ato_payg_wh_auto_' + qKey;
     if (!existing || existing === '0' || localStorage.getItem(autoKey) === 'true') {
       localStorage.setItem(storageKey, Math.round(total).toString());
       localStorage.setItem(autoKey, 'true');
@@ -1367,8 +1380,8 @@ async function loadATO() {
   // Restore settings
   const openingEl = document.getElementById('ato-opening');
   const agentEl = document.getElementById('ato-agent-toggle');
-  openingEl.value = getATOSetting('ps_ato_opening', '');
-  agentEl.value = getATOSetting('ps_ato_agent', 'agent');
+  openingEl.value = getATOSetting('hs_ato_opening', '');
+  agentEl.value = getATOSetting('hs_ato_agent', 'agent');
   try {
     const data = await api('/api/ato');
     D.atoQuarters = data.quarters || [];
@@ -1383,8 +1396,8 @@ async function loadATO() {
 function renderATO() {
   const quarters = D.atoQuarters;
   if (!quarters || quarters.length === 0) { document.getElementById('ato-tbody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">No ATO data available</td></tr>'; document.getElementById('ato-stats').innerHTML = ''; return; }
-  const isAgent = getATOSetting('ps_ato_agent', 'agent') === 'agent';
-  const openingBal = parseFloat(getATOSetting('ps_ato_opening', '0')) || 0;
+  const isAgent = getATOSetting('hs_ato_agent', 'agent') === 'agent';
+  const openingBal = parseFloat(getATOSetting('hs_ato_opening', '0')) || 0;
   let rolling = openingBal;
   const now = new Date();
   let nextDue = null, nextAmt = null, totalLiability = openingBal;
@@ -1399,8 +1412,8 @@ function renderATO() {
 
   const rows = quarters.map(q => {
     const qKey = q.fy + '-' + q.q;
-    const paygWH = parseFloat(getATOSetting('ps_ato_payg_wh_' + qKey, '0')) || 0;
-    const paygInst = parseFloat(getATOSetting('ps_ato_payg_inst_' + qKey, '0')) || 0;
+    const paygWH = parseFloat(getATOSetting('hs_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('hs_ato_payg_inst_' + qKey, '0')) || 0;
     const basPayable = q.netGST + paygWH + paygInst;
     rolling += basPayable;
     totalLiability += basPayable;
@@ -1416,8 +1429,8 @@ function renderATO() {
       <td style="color:var(--accent)">\${fc(q.gstCollected)}</td>
       <td style="color:var(--danger)">\${fc(q.gstPaid)}</td>
       <td><b>\${fc(q.netGST)}</b></td>
-      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('ps_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
-      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('ps_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
       <td><b style="color:\${basPayable>0?'var(--danger)':'var(--accent)'};">\${fc(basPayable)}</b></td>
       <td style="font-size:12px;\${!isPast&&dueDateObj<new Date(Date.now()+30*86400000)?'color:var(--amber);font-weight:700':''}">\${dueDate}</td>
       <td><b style="color:\${rolling>0?'var(--danger)':'var(--accent)'};">\${fc(rolling)}</b></td>
@@ -1433,11 +1446,11 @@ function renderATO() {
 function getATOBASOutflows() {
   // Returns array of {date, amount, label} for forecast integration
   const quarters = D.atoQuarters || [];
-  const isAgent = getATOSetting('ps_ato_agent', 'agent') === 'agent';
+  const isAgent = getATOSetting('hs_ato_agent', 'agent') === 'agent';
   return quarters.map(q => {
     const qKey = q.fy + '-' + q.q;
-    const paygWH = parseFloat(getATOSetting('ps_ato_payg_wh_' + qKey, '0')) || 0;
-    const paygInst = parseFloat(getATOSetting('ps_ato_payg_inst_' + qKey, '0')) || 0;
+    const paygWH = parseFloat(getATOSetting('hs_ato_payg_wh_' + qKey, '0')) || 0;
+    const paygInst = parseFloat(getATOSetting('hs_ato_payg_inst_' + qKey, '0')) || 0;
     const basPayable = q.netGST + paygWH + paygInst;
     const dueDate = isAgent ? q.dueAgent : q.dueNonAgent;
     return { date: dueDate, amount: basPayable, label: 'ATO BAS ' + q.q + ' (' + q.fy + ')' };
@@ -1493,11 +1506,11 @@ function saveJob() {
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
     costs:document.getElementById('job-costs').value,terms,paymentDate};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
-  D.jobs.push(j);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));
+  D.jobs.push(j);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));
   closeModal('job-modal');renderJobs();renderGantt();buildForecast();toast('Job added ✓');
 }
 
-function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('ps_jobs',JSON.stringify(D.jobs));renderJobs();renderGantt();toast('Removed');}
+function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));renderJobs();renderGantt();toast('Removed');}
 
 // ── GANTT CHART ───────────────────────────────────────────────────────────
 const GANTT_COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
@@ -1622,7 +1635,7 @@ function toast(msg){const tc=document.getElementById('toasts'),t=document.create
 
 // ── DIRECT DEBITS ──────────────────────────────────────────────────────────
 function loadDebits() {
-  D.debits = JSON.parse(localStorage.getItem('ps_debits')||'[]');
+  D.debits = JSON.parse(localStorage.getItem('hs_debits')||'[]');
   renderDebits();
 }
 
@@ -1716,7 +1729,7 @@ function saveDebit() {
   } else {
     D.debits.push(d);
   }
-  localStorage.setItem('ps_debits', JSON.stringify(D.debits));
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
   closeModal('debit-modal');
   renderDebits();
   toast(editId ? 'Debit updated ✓' : 'Debit added ✓');
@@ -1725,7 +1738,7 @@ function saveDebit() {
 function deleteDebit(id) {
   if (!confirm('Remove this direct debit?')) return;
   D.debits = D.debits.filter(d => d.id !== id);
-  localStorage.setItem('ps_debits', JSON.stringify(D.debits));
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
   renderDebits();
   toast('Removed');
 }
@@ -1734,7 +1747,7 @@ function exportDebits() {
   const blob = new Blob([JSON.stringify(D.debits, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'prestart-direct-debits.json';
+  a.download = 'headstart-direct-debits.json';
   a.click();
   toast('Exported ✓');
 }
@@ -1749,7 +1762,7 @@ function handleDebitImport(e) {
       const data = JSON.parse(ev.target.result);
       if (Array.isArray(data)) {
         D.debits = data;
-        localStorage.setItem('ps_debits', JSON.stringify(D.debits));
+        localStorage.setItem('hs_debits', JSON.stringify(D.debits));
         renderDebits();
         toast('Imported ' + data.length + ' debits ✓');
       } else { alert('Invalid format — expected JSON array'); }
@@ -1792,8 +1805,8 @@ loadDashboard();
 api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(() => {});
 api('/api/payroll').then(data => {
   const summary = data.summary;
-  const paygFreq = getPayrollSetting('ps_payroll_payg_freq', 'monthly');
-  const manualOverride = parseFloat(getPayrollSetting('ps_payroll_weekly_override', '0')) || 0;
+  const paygFreq = getPayrollSetting('hs_payroll_payg_freq', 'monthly');
+  const manualOverride = parseFloat(getPayrollSetting('hs_payroll_weekly_override', '0')) || 0;
   if (summary) {
     D.payroll = { payRuns: data.payRuns || [], avgWeekly: { gross: summary.averageWeeklyGross, super: summary.averageWeeklySuper, payg: summary.averageWeeklyPAYG, net: summary.averageWeeklyNet }, paygFrequency: paygFreq, source: 'xero' };
   } else if (manualOverride > 0) {
@@ -1805,4 +1818,4 @@ api('/api/payroll').then(data => {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Prestart v1.4 running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Headstart v1.4 running on port ${PORT}`));
