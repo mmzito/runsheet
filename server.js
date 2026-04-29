@@ -699,6 +699,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
     <button class="nav-btn" onclick="nav('payroll')">Payroll</button>
     <div class="sidebar-label">Planning</div>
     <button class="nav-btn" onclick="nav('jobs')">Job Pipeline</button>
+    <button class="nav-btn" onclick="nav('rates')">Rate Library</button>
   </aside>
   <main class="main">
     <div class="section active" id="section-dashboard">
@@ -861,7 +862,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
           <button class="btn btn-outline" id="schedule-toggle" onclick="toggleScheduleView()" style="font-size:12px">Work Schedule</button>
           <button class="btn btn-outline" id="share-schedule-btn" onclick="toggleSharePanel()" style="font-size:12px">Share Schedule</button>
         </div>
-        <button class="btn btn-primary" onclick="openModal('job-modal')">+ Add Job</button>
+        <button class="btn btn-primary" onclick="openJobModal()">+ Add Job</button>
       </div>
       <div id="share-panel" style="display:none">
         <div class="card" style="margin-bottom:14px">
@@ -886,6 +887,21 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
         </div>
       </div>
       <div id="jobs-content"></div>
+    </div>
+    <div class="section" id="section-rates">
+      <div class="page-title">RATE LIBRARY</div>
+      <div class="page-sub">Your material and labour rates. Used for job cost estimates.</div>
+      <div class="stats" id="rates-stats"></div>
+      <div style="margin:14px 0;display:flex;justify-content:flex-end">
+        <button class="btn btn-primary" onclick="openRateModal()">+ Add Rate</button>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Rate Library</span></div>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Name</th><th>Category</th><th>Unit</th><th>Rate ($)</th><th>Supplier</th><th>Terms</th><th>Thickness</th><th>Actions</th></tr></thead>
+          <tbody id="rates-tbody"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+        </table></div>
+      </div>
     </div>
   </main>
 </div>
@@ -918,8 +934,60 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
         </select>
       </div>
       <div style="background:var(--sand);border-radius:8px;padding:14px;font-size:13px" id="job-preview">Enter details above.</div>
+      <div style="margin-top:14px;border-top:1px solid #2A3F65;padding-top:14px">
+        <button type="button" class="btn btn-outline" onclick="toggleCostEstimator()" id="cost-estimator-toggle" style="width:100%;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">+ Build Cost Estimate</button>
+        <div id="cost-estimator-panel" style="display:none;margin-top:14px">
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <button type="button" class="btn btn-outline" onclick="addCostLine('material')" style="font-size:11px">+ Material</button>
+            <button type="button" class="btn btn-outline" onclick="addCostLine('labour')" style="font-size:11px">+ Labour</button>
+            <button type="button" class="btn btn-outline" onclick="addCostLine('plant')" style="font-size:11px">+ Plant</button>
+            <button type="button" class="btn btn-outline" onclick="addCostLine('overhead')" style="font-size:11px">+ Overhead</button>
+          </div>
+          <div id="cost-lines-container"><div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No cost items added yet.</div></div>
+          <div id="cost-totals" style="display:none;background:#152238;border-radius:2px;padding:12px;margin-top:8px;font-size:12px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <span style="color:var(--muted)">Materials:</span><span id="ct-materials">$0</span>
+              <span style="color:var(--muted)">Labour:</span><span id="ct-labour">$0</span>
+              <span style="color:var(--muted)">Plant:</span><span id="ct-plant">$0</span>
+              <span style="color:var(--muted)">Overhead:</span><span id="ct-overhead">$0</span>
+              <span style="font-weight:700;border-top:1px solid #2A3F65;padding-top:4px">TOTAL:</span>
+              <span id="ct-total" style="font-weight:700;color:var(--accent);border-top:1px solid #2A3F65;padding-top:4px">$0</span>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="useCostTotal()" style="width:100%;margin-top:10px;font-size:12px">Use as Direct Costs</button>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('job-modal')">Cancel</button><button class="btn btn-primary" onclick="saveJob()">Add to Pipeline</button></div>
+  </div>
+</div>
+<div class="modal-overlay" id="rate-modal">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-title" id="rate-modal-title">Add Rate</span><button class="modal-close" onclick="closeModal('rate-modal')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="rate-edit-id">
+      <div class="form-row">
+        <div class="form-field"><label>Name</label><input type="text" id="rate-name" placeholder="e.g. Concrete N20 100mm"></div>
+        <div class="form-field"><label>Category</label><select id="rate-category"><option value="Concrete">Concrete</option><option value="Steel">Steel/Mesh</option><option value="Aggregate">Aggregate</option><option value="Soil">Soil</option><option value="Asphalt">Asphalt</option><option value="Timber">Timber</option><option value="Pipe">Pipe</option><option value="Plant">Plant</option><option value="Labour">Labour</option><option value="Overhead">Overhead</option><option value="Other">Other</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Unit</label><select id="rate-unit"><option value="m³">m³</option><option value="m²">m²</option><option value="Lm">Lm</option><option value="tonne">tonne</option><option value="each">each</option><option value="day">day</option><option value="hour">hour</option></select></div>
+        <div class="form-field"><label>Rate ($)</label><input type="number" id="rate-amount" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field"><label>Supplier (optional)</label><input type="text" id="rate-supplier" placeholder="e.g. Holcim"></div>
+        <div class="form-field"><label>Supplier Payment Terms</label><select id="rate-terms"><option value="">None</option><option value="COD">COD</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="30eom">30 days EOM</option><option value="monthly">Monthly account</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-field" style="align-items:flex-start">
+          <label>Area Conversion</label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0"><input type="checkbox" id="rate-area-conv" onchange="toggleThicknessField()"> Has area conversion (m² to volume)</label>
+        </div>
+        <div class="form-field" id="rate-thickness-field" style="display:none"><label>Default Thickness (m)</label><input type="number" id="rate-thickness" step="0.001" placeholder="e.g. 0.1"></div>
+      </div>
+      <div class="form-field" style="margin-bottom:14px"><label>Notes (optional)</label><input type="text" id="rate-notes" placeholder="Optional notes"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('rate-modal')">Cancel</button><button class="btn btn-primary" onclick="saveRate()">Save Rate</button></div>
   </div>
 </div>
 <div class="toast-container" id="toasts"></div>
@@ -973,6 +1041,7 @@ function nav(id) {
   else if(id==='jobs')renderJobs();
   else if(id==='ato')loadATO();
   else if(id==='debits')loadDebits();
+  else if(id==='rates')renderRates();
   else if(id==='forecast')buildForecast();
 }
 
@@ -1125,7 +1194,8 @@ async function buildForecast() {
   const allBAS = getATOBASOutflows();
   const forecastEnd = new Date(start); forecastEnd.setDate(forecastEnd.getDate() + 52*7);
   const allDebitOccurrences = getDebitOccurrences(start, forecastEnd);
-  console.log('Forecast: payroll=' + effectiveWeeklyOut + '/wk, BAS=' + allBAS.length + ', debits=' + allDebitOccurrences.length);
+  const allAssumptions = getAssumptions();
+  console.log('Forecast: payroll=' + effectiveWeeklyOut + '/wk, BAS=' + allBAS.length + ', debits=' + allDebitOccurrences.length + ', assumptions=' + allAssumptions.length);
 
   let paygAccumulated = 0;
   const weeks = [];
@@ -1140,6 +1210,9 @@ async function buildForecast() {
     // Direct debit outflows for this week
     const weekDebits = allDebitOccurrences.filter(o => o.date >= ws && o.date <= we);
     const ddOut = weekDebits.reduce((s,o) => s + o.amount, 0);
+    // Assumption invoice outflows
+    const weekAssumptions = allAssumptions.filter(a=>{const d=new Date(a.dueDate);return d>=ws&&d<=we;});
+    const assumptionsOut = weekAssumptions.reduce((s,a)=>s+(a.amount||0),0);
     // Payroll outflows
     let payrollOut = effectiveWeeklyOut;
     let paygOut = 0;
@@ -1157,7 +1230,7 @@ async function buildForecast() {
       }
     }
 
-    const totalOut = billsOut + payrollOut + paygOut + basOut + ddOut;
+    const totalOut = billsOut + payrollOut + paygOut + basOut + ddOut + assumptionsOut;
     balance += inflows - totalOut;
     const mo = ws.toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const basLabels = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).map(o=>o.label);
@@ -1174,6 +1247,7 @@ async function buildForecast() {
     D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).forEach(b => { if(b.amount>0) outBreakdown.push({lbl:b.supplier||'Bill',amt:fc(b.amount)}); });
     weekDebits.forEach(dd => outBreakdown.push({lbl:dd.label.replace('DD: ',''),amt:fc(dd.amount)}));
     if (basOut > 0) { allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).forEach(o => outBreakdown.push({lbl:o.label,amt:fc(o.amount)})); }
+    weekAssumptions.forEach(a => outBreakdown.push({lbl:a.description+' (Assumed)',amt:fc(a.amount)}));
     weeks.push({w:w+1,ws,we,inflows,outflows:totalOut,balance,mo,isDanger:balance<threshold,isNeg:balance<0,tagLabels,inBD:JSON.stringify(inBreakdown),outBD:JSON.stringify(outBreakdown)});
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
@@ -1502,11 +1576,12 @@ function saveJob() {
     else if(terms==='14'){const p=new Date(end);p.setDate(p.getDate()+15);paymentDate=p.toISOString().substring(0,10);}
     else if(terms==='30'){const p=new Date(end);p.setDate(p.getDate()+31);paymentDate=p.toISOString().substring(0,10);}
   }
-  const j={name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
+  const j={id:'j'+Date.now(),name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
-    costs:document.getElementById('job-costs').value,terms,paymentDate};
+    costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines]};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
   D.jobs.push(j);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));
+  generateAssumptions(j);
   closeModal('job-modal');renderJobs();renderGantt();buildForecast();toast('Job added ✓');
 }
 
@@ -1798,6 +1873,161 @@ function getDebitOccurrences(forecastStart, forecastEnd) {
     }
   });
   return occurrences;
+}
+
+// ── RATE LIBRARY ───────────────────────────────────────────────────────────────────────────────
+const DEFAULT_RATES = [
+  {id:'dr1',name:'Concrete N20 100mm',category:'Concrete',unit:'m\u00b3',rate:180,supplier:'',supplierTerms:'30eom',areaConversion:true,thickness:0.1,notes:'Standard 100mm pour',updatedAt:'2026-04-29'},
+  {id:'dr2',name:'Concrete N20 150mm',category:'Concrete',unit:'m\u00b3',rate:180,supplier:'',supplierTerms:'30eom',areaConversion:true,thickness:0.15,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr3',name:'Crush Rock 100mm',category:'Aggregate',unit:'tonne',rate:45,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr4',name:'Steel Mesh SL72',category:'Steel',unit:'m\u00b2',rate:8.50,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr5',name:'Steel Mesh SL82',category:'Steel',unit:'m\u00b2',rate:9.50,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr6',name:'Soil Import',category:'Soil',unit:'m\u00b3',rate:30,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr7',name:'Soil Disposal',category:'Soil',unit:'m\u00b3',rate:35,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr8',name:'Asphalt 50mm',category:'Asphalt',unit:'m\u00b2',rate:85,supplier:'',supplierTerms:'',areaConversion:true,thickness:0.05,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr9',name:'Traffic Management',category:'Overhead',unit:'day',rate:850,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr10',name:'Bobcat Hire',category:'Plant',unit:'day',rate:550,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
+  {id:'dr11',name:'Truck Hire',category:'Plant',unit:'day',rate:650,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'}
+];
+function initRates(){const ex=localStorage.getItem('hs_rates');if(!ex||JSON.parse(ex).length===0)localStorage.setItem('hs_rates',JSON.stringify(DEFAULT_RATES));}
+initRates();
+function getRates(){return JSON.parse(localStorage.getItem('hs_rates')||'[]');}
+function saveRates(r){localStorage.setItem('hs_rates',JSON.stringify(r));}
+function openJobModal(){costLines=[];const p=document.getElementById('cost-estimator-panel');if(p)p.style.display='none';const t=document.getElementById('cost-estimator-toggle');if(t)t.textContent='+ Build Cost Estimate';openModal('job-modal');}
+
+function renderRates(){
+  const rates=getRates();
+  const avg=rates.length>0?Math.round(rates.reduce((s,r)=>s+r.rate,0)/rates.length*100)/100:0;
+  const lastUpd=rates.length>0?rates.map(r=>r.updatedAt||'').sort().reverse()[0]:'\u2014';
+  document.getElementById('rates-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Total Rates</div><div class="stat-val">\${rates.length}</div><div class="stat-sub">in library</div></div><div class="stat"><div class="stat-lbl">Avg Rate</div><div class="stat-val">\${fc(avg)}</div><div class="stat-sub">per unit</div></div><div class="stat"><div class="stat-lbl">Last Updated</div><div class="stat-val" style="font-size:18px">\${lastUpd||'\u2014'}</div></div>\`;
+  if(rates.length===0){document.getElementById('rates-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No rates. Click + Add Rate to get started.</td></tr>';return;}
+  document.getElementById('rates-tbody').innerHTML=rates.map(r=>\`<tr><td><b>\${r.name}</b></td><td><span class="badge bg" style="font-size:10px">\${r.category}</span></td><td style="font-size:12px">\${r.unit}</td><td><b>\${fc(r.rate)}</b></td><td style="font-size:12px;color:var(--muted)">\${r.supplier||'\u2014'}</td><td style="font-size:12px">\${r.supplierTerms||'\u2014'}</td><td style="font-size:12px">\${r.areaConversion&&r.thickness?r.thickness+'m':'\u2014'}</td><td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="openRateModal('\${r.id}')">Edit</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteRate('\${r.id}')">\u2715</button></td></tr>\`).join('');
+}
+
+function openRateModal(editId){
+  document.getElementById('rate-edit-id').value=editId||'';
+  document.getElementById('rate-modal-title').textContent=editId?'Edit Rate':'Add Rate';
+  if(editId){const r=getRates().find(x=>x.id===editId);if(r){document.getElementById('rate-name').value=r.name;document.getElementById('rate-category').value=r.category;document.getElementById('rate-unit').value=r.unit;document.getElementById('rate-amount').value=r.rate;document.getElementById('rate-supplier').value=r.supplier||'';document.getElementById('rate-terms').value=r.supplierTerms||'';document.getElementById('rate-area-conv').checked=r.areaConversion||false;document.getElementById('rate-thickness').value=r.thickness||'';document.getElementById('rate-notes').value=r.notes||'';toggleThicknessField();}}
+  else{document.getElementById('rate-name').value='';document.getElementById('rate-category').value='Concrete';document.getElementById('rate-unit').value='m\u00b3';document.getElementById('rate-amount').value='';document.getElementById('rate-supplier').value='';document.getElementById('rate-terms').value='';document.getElementById('rate-area-conv').checked=false;document.getElementById('rate-thickness').value='';document.getElementById('rate-notes').value='';toggleThicknessField();}
+  openModal('rate-modal');
+}
+function toggleThicknessField(){document.getElementById('rate-thickness-field').style.display=document.getElementById('rate-area-conv').checked?'flex':'none';}
+function saveRate(){
+  const editId=document.getElementById('rate-edit-id').value;
+  const r={id:editId||'r'+Date.now(),name:document.getElementById('rate-name').value.trim(),category:document.getElementById('rate-category').value,unit:document.getElementById('rate-unit').value,rate:parseFloat(document.getElementById('rate-amount').value)||0,supplier:document.getElementById('rate-supplier').value.trim(),supplierTerms:document.getElementById('rate-terms').value,areaConversion:document.getElementById('rate-area-conv').checked,thickness:parseFloat(document.getElementById('rate-thickness').value)||null,notes:document.getElementById('rate-notes').value.trim(),updatedAt:new Date().toISOString().substring(0,10)};
+  if(!r.name||!r.rate){alert('Enter rate name and amount');return;}
+  const rates=getRates();
+  if(editId){const idx=rates.findIndex(x=>x.id===editId);if(idx>=0)rates[idx]=r;}else rates.push(r);
+  saveRates(rates);closeModal('rate-modal');renderRates();toast(editId?'Rate updated \u2713':'Rate added \u2713');
+}
+function deleteRate(id){if(!confirm('Remove this rate?'))return;saveRates(getRates().filter(r=>r.id!==id));renderRates();toast('Removed');}
+
+// ── COST ESTIMATOR ──────────────────────────────────────────────────────────────────────────────
+let costLines=[];
+function toggleCostEstimator(){const p=document.getElementById('cost-estimator-panel'),b=document.getElementById('cost-estimator-toggle');if(p.style.display==='none'){p.style.display='block';b.textContent='- Hide Cost Estimate';renderCostLines();}else{p.style.display='none';b.textContent='+ Build Cost Estimate';}}
+function addCostLine(type){
+  const rates=getRates(),id='cl'+Date.now()+Math.random().toString(36).substr(2,4);
+  if(type==='material'){const mr=rates.filter(r=>!['Plant','Labour','Overhead'].includes(r.category));const f=mr[0]||null;costLines.push({id,type,rateId:f?f.id:'',name:f?f.name:'',quantity:1,quantityUnit:f?(f.areaConversion?'m\u00b2':f.unit):'m\u00b2',unitRate:f?f.rate:0,areaConversion:f?f.areaConversion:false,thickness:f?f.thickness:null,lineTotal:f?f.rate:0,supplier:f?f.supplier:'',supplierTerms:f?f.supplierTerms:'',category:f?f.category:''}); }
+  else if(type==='labour'){costLines.push({id,type,name:'Labour',crewSize:1,days:1,dailyRate:850,lineTotal:850,supplier:'',supplierTerms:''}); }
+  else if(type==='plant'){const pr=rates.filter(r=>r.category==='Plant');const f=pr[0]||null;costLines.push({id,type,rateId:f?f.id:'',name:f?f.name:'',days:1,unitRate:f?f.rate:550,lineTotal:f?f.rate:550,supplier:f?f.supplier:'',supplierTerms:f?f.supplierTerms:'',category:'Plant'}); }
+  else if(type==='overhead'){const or=rates.filter(r=>r.category==='Overhead');const f=or[0]||null;costLines.push({id,type,rateId:f?f.id:'',name:f?f.name:'Overhead',quantity:1,unitRate:f?f.rate:0,lineTotal:f?f.rate:0,supplier:f?f.supplier:'',supplierTerms:f?f.supplierTerms:'',category:'Overhead'}); }
+  renderCostLines();updateCostTotals();
+}
+function removeCostLine(id){costLines=costLines.filter(l=>l.id!==id);renderCostLines();updateCostTotals();}
+function renderCostLines(){
+  const c=document.getElementById('cost-lines-container');if(!c)return;
+  if(costLines.length===0){c.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No cost items added yet.</div>';document.getElementById('cost-totals').style.display='none';return;}
+  document.getElementById('cost-totals').style.display='block';
+  const rates=getRates();
+  const mr=rates.filter(r=>!['Plant','Labour','Overhead'].includes(r.category));
+  const pr=rates.filter(r=>r.category==='Plant');
+  const or=rates.filter(r=>r.category==='Overhead');
+  let html='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#152238"><th style="padding:6px 8px;text-align:left;font-size:10px">Type</th><th style="padding:6px 8px;text-align:left;font-size:10px">Item</th><th style="padding:6px 8px;text-align:right;font-size:10px">Qty</th><th style="padding:6px 8px;font-size:10px">Unit</th><th style="padding:6px 8px;text-align:right;font-size:10px">Rate</th><th style="padding:6px 8px;text-align:right;font-size:10px">Total</th><th style="padding:6px 8px"></th></tr></thead><tbody>';
+  costLines.forEach(function(line){
+    let row='';
+    const rmBtn='<td><button onclick="removeCostLine(\''+line.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">\u00d7</button></td>';
+    if(line.type==='material'){
+      const so=mr.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
+      const rObj=mr.find(r=>r.id===line.rateId)||{};
+      const qu=rObj.areaConversion?'m\u00b2':(rObj.unit||line.quantityUnit||'');
+      row='<td><span style="font-size:10px;background:rgba(46,196,182,0.1);color:#2EC4B6;padding:2px 6px;border-radius:3px">MAT</span></td>'
+        +'<td><select onchange="onMaterialSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="0" step="0.01" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="font-size:11px">'+qu+'</td>'
+        +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
+    } else if(line.type==='labour'){
+      row='<td><span style="font-size:10px;background:rgba(244,162,97,0.1);color:#F4A261;padding:2px 6px;border-radius:3px">LAB</span></td>'
+        +'<td><input type="text" value="'+line.name+'" placeholder="Labour" onchange="onLabourNameChange(\''+line.id+'\',this.value)" style="padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px"></td>'
+        +'<td style="text-align:right;white-space:nowrap"><input type="number" value="'+line.crewSize+'" min="1" title="Crew" onchange="onLabourChange(\''+line.id+'\',\'crew\',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px">x<input type="number" value="'+line.days+'" min="1" title="Days" onchange="onLabourChange(\''+line.id+'\',\'days\',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px"></td>'
+        +'<td style="font-size:11px">d</td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.dailyRate+'" onchange="onLabourChange(\''+line.id+'\',\'rate\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
+    } else if(line.type==='plant'){
+      const so=pr.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
+      row='<td><span style="font-size:10px;background:rgba(99,102,241,0.1);color:#6366F1;padding:2px 6px;border-radius:3px">PLT</span></td>'
+        +'<td><select onchange="onPlantSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.days+'" min="1" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="font-size:11px">days</td>'
+        +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
+    } else if(line.type==='overhead'){
+      const so='<option value="">Manual</option>'+or.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
+      row='<td><span style="font-size:10px;background:rgba(230,57,70,0.1);color:#E63946;padding:2px 6px;border-radius:3px">OVH</span></td>'
+        +'<td><select onchange="onOverheadSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">'+so+'</select>'
+        +(line.rateId?'':'<input type="text" value="'+line.name+'" placeholder="Description" onchange="onOverheadNameChange(\''+line.id+'\',this.value)" style="margin-top:3px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">')
+        +'</td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="1" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="font-size:11px">each</td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.unitRate+'" onchange="onOverheadRateChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
+    }
+    html+='<tr style="border-bottom:1px solid #2A3F65">'+row+rmBtn+'</tr>';
+  });
+  html+='</tbody></table>';
+  c.innerHTML=html;
+}
+function onMaterialSelect(id,rateId){const r=getRates().find(x=>x.id===rateId);const l=costLines.find(l=>l.id===id);if(l&&r){l.rateId=r.id;l.name=r.name;l.unitRate=r.rate;l.areaConversion=r.areaConversion;l.thickness=r.thickness;l.supplier=r.supplier;l.supplierTerms=r.supplierTerms;l.quantityUnit=r.areaConversion?'m\u00b2':r.unit;l.category=r.category;recalcLine(l);}renderCostLines();updateCostTotals();}
+function onPlantSelect(id,rateId){const r=getRates().find(x=>x.id===rateId);const l=costLines.find(l=>l.id===id);if(l&&r){l.rateId=r.id;l.name=r.name;l.unitRate=r.rate;l.supplier=r.supplier;l.supplierTerms=r.supplierTerms;recalcLine(l);}renderCostLines();updateCostTotals();}
+function onOverheadSelect(id,rateId){const r=getRates().find(x=>x.id===rateId);const l=costLines.find(l=>l.id===id);if(l){if(r){l.rateId=r.id;l.name=r.name;l.unitRate=r.rate;l.supplier=r.supplier;l.supplierTerms=r.supplierTerms;}else{l.rateId='';l.name='';}recalcLine(l);}renderCostLines();updateCostTotals();}
+function onOverheadNameChange(id,val){const l=costLines.find(l=>l.id===id);if(l)l.name=val;}
+function onOverheadRateChange(id,val){const l=costLines.find(l=>l.id===id);if(l){l.unitRate=parseFloat(val)||0;recalcLine(l);updateCostTotals();renderCostLines();}}
+function onCostQtyChange(id,val){const l=costLines.find(l=>l.id===id);if(l){if(l.type==='plant')l.days=parseFloat(val)||1;else l.quantity=parseFloat(val)||1;recalcLine(l);updateCostTotals();renderCostLines();}}
+function onLabourNameChange(id,val){const l=costLines.find(l=>l.id===id);if(l)l.name=val;}
+function onLabourChange(id,field,val){const l=costLines.find(l=>l.id===id);if(l){if(field==='crew')l.crewSize=parseFloat(val)||1;else if(field==='days')l.days=parseFloat(val)||1;else if(field==='rate')l.dailyRate=parseFloat(val)||0;recalcLine(l);updateCostTotals();renderCostLines();}}
+function recalcLine(l){
+  if(l.type==='material'){if(l.areaConversion&&l.thickness){l.convertedQty=Math.round((l.quantity||0)*l.thickness*1000)/1000;l.lineTotal=Math.round(l.convertedQty*l.unitRate*100)/100;}else{l.lineTotal=Math.round((l.quantity||0)*l.unitRate*100)/100;}}
+  else if(l.type==='labour'){l.lineTotal=Math.round((l.crewSize||1)*(l.days||1)*(l.dailyRate||0)*100)/100;}
+  else if(l.type==='plant'){l.lineTotal=Math.round((l.days||1)*l.unitRate*100)/100;}
+  else if(l.type==='overhead'){l.lineTotal=Math.round((l.quantity||1)*l.unitRate*100)/100;}
+}
+function updateCostTotals(){const t={material:0,labour:0,plant:0,overhead:0};costLines.forEach(l=>{if(t[l.type]!==undefined)t[l.type]+=l.lineTotal||0;});const tot=t.material+t.labour+t.plant+t.overhead;const el=document.getElementById('cost-totals');if(el){el.style.display=costLines.length>0?'block':'none';document.getElementById('ct-materials').textContent=fc(t.material);document.getElementById('ct-labour').textContent=fc(t.labour);document.getElementById('ct-plant').textContent=fc(t.plant);document.getElementById('ct-overhead').textContent=fc(t.overhead);document.getElementById('ct-total').textContent=fc(tot);}}
+function useCostTotal(){const t={material:0,labour:0,plant:0,overhead:0};costLines.forEach(l=>{if(t[l.type]!==undefined)t[l.type]+=l.lineTotal||0;});const tot=t.material+t.labour+t.plant+t.overhead;const el=document.getElementById('job-costs');if(el){el.value=Math.round(tot*100)/100;previewJob();}toast('Direct costs updated \u2713');}
+
+// ── ASSUMPTION INVOICES ──────────────────────────────────────────────────────────────────────
+function getAssumptions(){return JSON.parse(localStorage.getItem('hs_assumptions')||'[]');}
+function saveAssumptions(a){localStorage.setItem('hs_assumptions',JSON.stringify(a));}
+function generateAssumptions(job){
+  if(!job.costBreakdown||job.costBreakdown.length===0)return;
+  const assumptions=getAssumptions().filter(a=>a.jobId!==job.id);
+  const jobEnd=job.endDate?new Date(job.endDate):new Date();
+  const jobStart=job.startDate?new Date(job.startDate):new Date();
+  job.costBreakdown.forEach(function(line){
+    if(!line.supplier||!line.supplierTerms||line.lineTotal<=0)return;
+    let invoiceDate,dueDate;
+    const terms=line.supplierTerms;
+    if(terms==='monthly'||terms==='30eom'){
+      invoiceDate=new Date(jobEnd.getFullYear(),jobEnd.getMonth()+1,0);
+      dueDate=new Date(invoiceDate.getFullYear(),invoiceDate.getMonth()+1,30);
+    } else if(terms==='COD'){
+      invoiceDate=new Date(jobStart);dueDate=new Date(jobStart);
+    } else {
+      const termDays=parseInt(terms)||30;
+      invoiceDate=new Date(jobStart);dueDate=new Date(jobStart);dueDate.setDate(dueDate.getDate()+termDays);
+    }
+    assumptions.push({id:'asmp'+Date.now()+Math.random().toString(36).substr(2,5),jobId:job.id,jobName:job.name,description:line.name+(line.convertedQty?' \u2014 '+line.convertedQty+'m\u00b3':''),supplier:line.supplier,amount:line.lineTotal,invoiceDate:invoiceDate.toISOString().substring(0,10),dueDate:dueDate.toISOString().substring(0,10),category:line.category||line.type,status:'assumed'});
+  });
+  saveAssumptions(assumptions);
 }
 
 loadDashboard();
