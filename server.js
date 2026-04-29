@@ -71,7 +71,7 @@ h2{font-size:18px;color:#1B2A4A;margin-bottom:10px}p{font-size:13px;color:#6B728
   <p>Headstart reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
   <a class="btn-xero" href="/auth">Connect with Xero →</a>
   <a class="btn-demo" href="/app?demo=true">Try with demo data (Creted Civil)</a>
-  <p class="sec">🔒 Secure OAuth 2.0 with PKCE · Read-only · Disconnect anytime</p>
+  <p class="sec">Secure OAuth 2.0 with PKCE · Read-only · Disconnect anytime</p>
 </div></body></html>`);
 });
 
@@ -465,8 +465,8 @@ function buildScheduleHTML(token) {
 @media(max-width:768px){body{padding:12px}.gantt-label{width:100px;font-size:11px;padding:6px 8px}.gantt-bar{height:18px;font-size:9px}}
 </style></head><body>
 <div class="topbar"><div class="logo">Head<span>start</span></div><span class="badge">Shared Work Schedule</span></div>
-<div class="card"><div class="card-hdr">📅 Work Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
-<div class="card"><div class="card-hdr">\u{1F3D7}\uFE0F Upcoming Jobs</div><div class="card-body" id="job-list"><div class="empty">Loading schedule...</div></div></div>
+<div class="card"><div class="card-hdr">Work Schedule</div><div class="card-body" style="padding:0"><div class="gantt-wrap"><div class="gantt" id="gantt-chart"></div></div></div></div>
+<div class="card"><div class="card-hdr">Upcoming Jobs</div><div class="card-body" id="job-list"><div class="empty">Loading schedule...</div></div></div>
 <script>
 const COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
 const token='${token}';
@@ -688,17 +688,17 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="balance-val" id="sidebar-balance">...</div>
     </div>
     <div class="sidebar-label">Overview</div>
-    <button class="nav-btn active" onclick="nav('dashboard')"><span>📊</span> Dashboard</button>
-    <button class="nav-btn" onclick="nav('forecast')"><span>📅</span> 52-Week Forecast</button>
+    <button class="nav-btn active" onclick="nav('dashboard')">Dashboard</button>
+    <button class="nav-btn" onclick="nav('forecast')">52-Week Forecast</button>
     <div class="sidebar-label">Money In</div>
-    <button class="nav-btn" onclick="nav('invoices')"><span>📥</span> Invoices</button>
+    <button class="nav-btn" onclick="nav('invoices')">Invoices</button>
     <div class="sidebar-label">Money Out</div>
-    <button class="nav-btn" onclick="nav('bills')"><span>📤</span> Bills</button>
-    <button class="nav-btn" onclick="nav('ato')"><span>🏛️</span> ATO Obligations</button>
-    <button class="nav-btn" onclick="nav('debits')"><span>📋</span> Direct Debits</button>
-    <button class="nav-btn" onclick="nav('payroll')"><span>💼</span> Payroll</button>
+    <button class="nav-btn" onclick="nav('bills')">Bills</button>
+    <button class="nav-btn" onclick="nav('ato')">ATO Obligations</button>
+    <button class="nav-btn" onclick="nav('debits')">Direct Debits</button>
+    <button class="nav-btn" onclick="nav('payroll')">Payroll</button>
     <div class="sidebar-label">Planning</div>
-    <button class="nav-btn" onclick="nav('jobs')"><span>🏗️</span> Job Pipeline</button>
+    <button class="nav-btn" onclick="nav('jobs')">Job Pipeline</button>
   </aside>
   <main class="main">
     <div class="section active" id="section-dashboard">
@@ -707,8 +707,8 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div id="dash-alerts"></div>
       <div class="stats" id="dash-stats"><div class="loading">Fetching your Xero data...</div></div>
       <div class="dash-cards" style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-        <div class="card"><div class="card-hdr"><span class="card-title">📥 Due In — Next 30 Days</span></div><div class="card-body" id="dash-in"><div class="loading">Loading...</div></div></div>
-        <div class="card"><div class="card-hdr"><span class="card-title">📤 Due Out — Next 30 Days</span></div><div class="card-body" id="dash-out"><div class="loading">Loading...</div></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">Due In — Next 30 Days</span></div><div class="card-body" id="dash-in"><div class="loading">Loading...</div></div></div>
+        <div class="card"><div class="card-hdr"><span class="card-title">Due Out — Next 30 Days</span></div><div class="card-body" id="dash-out"><div class="loading">Loading...</div></div></div>
       </div>
     </div>
     <div class="section" id="section-forecast">
@@ -741,7 +741,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-sub">Outstanding invoices from Xero</div>
       <div id="inv-stats" class="stats"></div>
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Outstanding Invoices</span><button class="btn btn-outline" onclick="loadInvoices()">🔄 Refresh</button></div>
+        <div class="card-hdr"><span class="card-title">Outstanding Invoices</span><button class="btn btn-outline" onclick="loadInvoices()">Refresh</button></div>
         <div class="tbl-wrap"><table>
           <thead><tr><th>Client</th><th>Ref</th><th>Amount Due</th><th>Due Date</th><th>Days</th><th>Status</th></tr></thead>
           <tbody id="inv-tbody"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
@@ -753,7 +753,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-sub">Outstanding bills from Xero</div>
       <div id="bill-stats" class="stats"></div>
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Outstanding Bills</span><button class="btn btn-outline" onclick="loadBills()">🔄 Refresh</button></div>
+        <div class="card-hdr"><span class="card-title">Outstanding Bills</span><button class="btn btn-outline" onclick="loadBills()">Refresh</button></div>
         <div class="tbl-wrap"><table>
           <thead><tr><th>Supplier</th><th>Amount Due</th><th>Due Date</th><th>Days</th><th>Status</th></tr></thead>
           <tbody id="bill-tbody"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
@@ -780,7 +780,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
               <option value="self">Self-lodged</option>
             </select>
           </div>
-          <button class="btn btn-outline" onclick="loadATO()" style="margin-top:18px">🔄 Refresh from Xero</button>
+          <button class="btn btn-outline" onclick="loadATO()" style="margin-top:18px">Refresh from Xero</button>
         </div>
       </div>
       <div class="card">
@@ -796,7 +796,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-sub">Pay runs, super obligations, and PAYG withholding from Xero Payroll</div>
       <div class="stats" id="payroll-stats"><div class="loading">Loading payroll data...</div></div>
       <div class="card" style="margin-bottom:18px">
-        <div class="card-hdr"><span class="card-title">⚙️ Payroll Settings</span></div>
+        <div class="card-hdr"><span class="card-title">Payroll Settings</span></div>
         <div class="card-body" style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
           <div class="form-field" style="min-width:200px">
             <label>PAYG Payment Frequency</label>
@@ -817,11 +817,11 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
             <input type="number" id="payroll-override" placeholder="e.g. 22681" onchange="savePayrollSetting('hs_payroll_weekly_override', this.value); loadPayroll()">
             <span style="font-size:10px;color:var(--muted);margin-top:2px">Used if Xero payroll unavailable</span>
           </div>
-          <button class="btn btn-outline" onclick="loadPayroll()" style="margin-top:18px">🔄 Refresh from Xero</button>
+          <button class="btn btn-outline" onclick="loadPayroll()" style="margin-top:18px">Refresh from Xero</button>
         </div>
       </div>
       <div class="card" style="margin-bottom:18px" id="payroll-upcoming-card">
-        <div class="card-hdr"><span class="card-title">📅 Upcoming Payments</span></div>
+        <div class="card-hdr"><span class="card-title">Upcoming Payments</span></div>
         <div class="card-body" id="payroll-upcoming" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
           <div class="loading">Loading...</div>
         </div>
@@ -839,13 +839,13 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       <div class="page-sub">Recurring direct debits, finance payments, and subscriptions</div>
       <div class="stats" id="debit-stats"></div>
       <div style="margin:14px 0;display:flex;justify-content:flex-end;gap:10px">
-        <button class="btn btn-outline" id="debit-import-btn" onclick="importDebits()">📥 Import</button>
-        <button class="btn btn-outline" onclick="exportDebits()">📤 Export</button>
+        <button class="btn btn-outline" id="debit-import-btn" onclick="importDebits()">Import</button>
+        <button class="btn btn-outline" onclick="exportDebits()">Export</button>
         <button class="btn btn-primary" onclick="openDebitModal()">+ Add Direct Debit</button>
       </div>
       <input type="file" id="debit-import-file" accept=".json" style="display:none" onchange="handleDebitImport(event)">
       <div class="card">
-        <div class="card-hdr"><span class="card-title">Direct Debits</span><button class="btn btn-outline" onclick="loadDebits()">🔄 Refresh</button></div>
+        <div class="card-hdr"><span class="card-title">Direct Debits</span><button class="btn btn-outline" onclick="loadDebits()">Refresh</button></div>
         <div class="tbl-wrap"><table>
           <thead><tr><th>Name</th><th>Category</th><th>Amount</th><th>Frequency</th><th>Next Due</th><th>End Date</th><th>Reference</th><th>Annual Cost</th><th>Actions</th></tr></thead>
           <tbody id="debit-tbody"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody>
@@ -855,17 +855,17 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
     <div class="section" id="section-jobs">
       <div class="page-title">Job Pipeline</div>
       <div class="page-sub">Add upcoming jobs to see payment timing in your 52-week forecast</div>
-      <div class="alert alert-green">💡 <b>Key feature:</b> Enter jobs with payment terms to see exactly when costs land vs when money arrives.</div>
+      <div class="alert alert-green"><b>Key feature:</b> Enter jobs with payment terms to see exactly when costs land vs when money arrives.</div>
       <div style="margin:14px 0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
         <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn btn-outline" id="schedule-toggle" onclick="toggleScheduleView()" style="font-size:12px">📅 Work Schedule</button>
-          <button class="btn btn-outline" id="share-schedule-btn" onclick="toggleSharePanel()" style="font-size:12px">🔗 Share Schedule</button>
+          <button class="btn btn-outline" id="schedule-toggle" onclick="toggleScheduleView()" style="font-size:12px">Work Schedule</button>
+          <button class="btn btn-outline" id="share-schedule-btn" onclick="toggleSharePanel()" style="font-size:12px">Share Schedule</button>
         </div>
         <button class="btn btn-primary" onclick="openModal('job-modal')">+ Add Job</button>
       </div>
       <div id="share-panel" style="display:none">
         <div class="card" style="margin-bottom:14px">
-          <div class="card-hdr"><span class="card-title">🔗 Share Schedule with Crew</span></div>
+          <div class="card-hdr"><span class="card-title">Share Schedule with Crew</span></div>
           <div class="card-body">
             <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Share a read-only view of your job schedule. Crew leaders can see upcoming work — no login required.</p>
             <div class="share-link-box">
@@ -877,7 +877,7 @@ tr:hover td{background:var(--sand)}tr:last-child td{border-bottom:none}
       </div>
       <div id="schedule-container" style="display:none">
         <div class="card gantt-colors">
-          <div class="card-hdr"><span class="card-title">📅 Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-hdr"><span class="card-title">Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
           <div class="card-body" style="padding:0">
             <div class="gantt-wrap" id="gantt-scroll">
               <div class="gantt" id="gantt-chart"></div>
@@ -1046,10 +1046,10 @@ async function loadDashboard() {
     const od = D.invoices.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('dash-stats').innerHTML = \`
       <div class="stat"><div class="stat-lbl">Total Receivables</div><div class="stat-val">\${fc(data.totalReceivables)}</div><div class="stat-sub">unpaid invoices</div></div>
-      <div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div><div class="stat-sub">\${od>0?'⚠ follow up now':'all current'}</div></div>
+      <div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div><div class="stat-sub">\${od>0?'follow up now':'all current'}</div></div>
       <div class="stat amber"><div class="stat-lbl">Total Payables</div><div class="stat-val">\${fc(data.totalPayables)}</div><div class="stat-sub">outstanding bills</div></div>
       <div class="stat"><div class="stat-lbl">Net Position</div><div class="stat-val \${data.netPosition<0?'neg':''}">\${fc(data.netPosition)}</div><div class="stat-sub">receivables minus payables</div></div>\`;
-    if(od>0) document.getElementById('dash-alerts').innerHTML = \`<div class="alert alert-amber">⚠️ <b>\${fc(od)}</b> in overdue invoices — chase these immediately</div>\`;
+    if(od>0) document.getElementById('dash-alerts').innerHTML = \`<div class="alert alert-amber"><b>\${fc(od)}</b> in overdue invoices — chase these immediately</div>\`;
     const in30 = D.invoices.filter(i=>new Date(i.due)<=d30&&new Date(i.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-in').innerHTML = in30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No invoices due in next 30 days</div>':
       in30.slice(0,6).map(i=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13px"><div><b>\${i.client||i.ref}</b><div style="font-size:11px;color:var(--muted)">Due \${i.due}</div></div><b style="color:var(--accent)">\${fc(i.amount)}</b></div>\`).join('');
@@ -1058,7 +1058,7 @@ async function loadDashboard() {
       out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
     toast('Data loaded ✓');
   } catch(e) {
-    document.getElementById('dash-stats').innerHTML = \`<div class="alert alert-red">⚠ Failed to load: \${e.message} — <a href="/connect" style="color:var(--danger)">Reconnect Xero</a></div>\`;
+    document.getElementById('dash-stats').innerHTML = \`<div class="alert alert-red">Failed to load: \${e.message} — <a href="/connect" style="color:var(--danger)">Reconnect Xero</a></div>\`;
   }
 }
 
@@ -1186,7 +1186,7 @@ async function buildForecast() {
       \${w.inflows>0?\`<div class="bar-in" style="width:\${Math.min(Math.round(w.inflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.outflows>0?\`<div class="bar-out" style="width:\${Math.min(Math.round(w.outflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.tagLabels&&w.tagLabels.length?w.tagLabels.map(l=>\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${l}</span>\`).join(''):''}
-      \${w.isDanger?' <span style="font-size:11px;color:var(--danger)">⚠</span>':''}
+      \${w.isDanger?' <span style="font-size:11px;color:var(--danger);font-weight:700">!</span>':''}
     </div></div>\`;}).join('');
 }
 
@@ -1328,17 +1328,17 @@ function renderPayrollUpcoming() {
 
   el.innerHTML = \`
     <div style="background:var(--sand);border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83d\udcb0 Next Wages</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Wages</div>
       <div style="font-family:'DM Serif Display',serif;font-size:22px">\${fc(avg.net)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate}</div>
     </div>
     <div style="background:var(--sand);border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83c\udfe6 Next Super</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Super</div>
       <div style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--amber)">\${fc(avg.super)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate} (with wages)</div>
     </div>
     <div style="background:var(--sand);border-radius:8px;padding:14px">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">\ud83c\udfdb\ufe0f Next PAYG W/H</div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next PAYG W/H</div>
       <div style="font-family:'DM Serif Display',serif;font-size:22px;color:var(--orange)">\${fc(paygAmt)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextPaygDate} (\${paygFreq})</div>
     </div>
@@ -1466,7 +1466,7 @@ function renderJobs() {
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
     <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
     <td style="font-size:12px">\${j.paymentDate||'—'}</td>
-    <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' ⚠':''):'—'}</td>
+    <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' (long gap)':''):'—'}</td>
     <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
     <td><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
     </tbody></table></div></div>\`;
@@ -1490,8 +1490,8 @@ function previewJob() {
     \${payDate?\`<div>Est. payment: <b>\${payDate}</b></div>\`:''}
     \${gapDays?\`<div>Cash gap: <b style="color:\${gapDays>45?'var(--danger)':'inherit'}">\${gapDays} days</b></div>\`:''}
   </div>
-  \${isLoss?'<div class="alert alert-red" style="margin-top:8px">⛔ Loss-making. Do not accept without renegotiating rates.</div>':''}
-  \${gapDays&&gapDays>45?'<div class="alert alert-amber" style="margin-top:8px">⚠ Large cash gap — consider requesting a progress claim.</div>':''}\`;
+  \${isLoss?'<div class="alert alert-red" style="margin-top:8px">Loss-making. Do not accept without renegotiating rates.</div>':''}
+  \${gapDays&&gapDays>45?'<div class="alert alert-amber" style="margin-top:8px">Large cash gap — consider requesting a progress claim.</div>':''}\`;
 }
 
 function saveJob() {
@@ -1679,7 +1679,7 @@ function renderDebits() {
       <td style="font-size:12px;color:var(--muted)">\${d.endDate||'—'}</td>
       <td style="font-size:12px;color:var(--muted)">\${d.reference||'—'}</td>
       <td>\${fc(annual)}/yr</td>
-      <td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="editDebit('\${d.id}')">✏️</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteDebit('\${d.id}')">✕</button></td>
+      <td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="editDebit('\${d.id}')">Edit</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteDebit('\${d.id}')">✕</button></td>
     </tr>\`;
   }).join('');
 }
