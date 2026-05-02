@@ -933,7 +933,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
           <option value="progress">Progress Claims</option>
         </select>
       </div>
-      <div style="background:var(--sand);border-radius:8px;padding:14px;font-size:13px" id="job-preview">Enter details above.</div>
+      <div style="background:var(--dark);border-radius:8px;padding:14px;font-size:13px" id="job-preview">Enter details above.</div>
       <div style="margin-top:14px;border-top:1px solid #2A3F65;padding-top:14px">
         <button type="button" class="btn btn-outline" onclick="toggleCostEstimator()" id="cost-estimator-toggle" style="width:100%;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">+ Build Cost Estimate</button>
         <div id="cost-estimator-panel" style="display:none;margin-top:14px">
@@ -1121,10 +1121,10 @@ async function loadDashboard() {
     if(od>0) document.getElementById('dash-alerts').innerHTML = \`<div class="alert alert-amber"><b>\${fc(od)}</b> in overdue invoices — chase these immediately</div>\`;
     const in30 = D.invoices.filter(i=>new Date(i.due)<=d30&&new Date(i.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-in').innerHTML = in30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No invoices due in next 30 days</div>':
-      in30.slice(0,6).map(i=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13px"><div><b>\${i.client||i.ref}</b><div style="font-size:11px;color:var(--muted)">Due \${i.due}</div></div><b style="color:var(--accent)">\${fc(i.amount)}</b></div>\`).join('');
+      in30.slice(0,6).map(i=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${i.client||i.ref}</b><div style="font-size:11px;color:var(--muted)">Due \${i.due}</div></div><b style="color:var(--accent)">\${fc(i.amount)}</b></div>\`).join('');
     const out30 = D.bills.filter(b=>new Date(b.due)<=d30&&new Date(b.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-out').innerHTML = out30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No bills due in next 30 days</div>':
-      out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--sand);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
+      out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
     toast('Data loaded ✓');
   } catch(e) {
     document.getElementById('dash-stats').innerHTML = \`<div class="alert alert-red">Failed to load: \${e.message} — <a href="/connect" style="color:var(--danger)">Reconnect Xero</a></div>\`;
@@ -1401,17 +1401,17 @@ function renderPayrollUpcoming() {
   }
 
   el.innerHTML = \`
-    <div style="background:var(--sand);border-radius:8px;padding:14px">
+    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Wages</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px">\${fc(avg.net)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate}</div>
     </div>
-    <div style="background:var(--sand);border-radius:8px;padding:14px">
+    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Super</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;color:var(--amber)">\${fc(avg.super)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate} (with wages)</div>
     </div>
-    <div style="background:var(--sand);border-radius:8px;padding:14px">
+    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next PAYG W/H</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;color:var(--orange)">\${fc(paygAmt)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextPaygDate} (\${paygFreq})</div>
@@ -1651,7 +1651,7 @@ function renderGantt(){
   }
   let html='<div style="display:inline-block;min-width:'+totalW+'px">';
   // Header
-  html+='<div style="display:flex;border-bottom:2px solid var(--dark);background:#fff;position:sticky;top:0;z-index:2">';
+  html+='<div style="display:flex;border-bottom:2px solid var(--border);background:#1D2D4E;position:sticky;top:0;z-index:2">';
   html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);border-right:1px solid var(--border)">JOB</div>';
   html+='<div style="display:flex">'+monthsHtml+'</div></div>';
   // Body
@@ -1673,8 +1673,8 @@ function renderGantt(){
     const color=GANTT_COLORS[i%GANTT_COLORS.length];
     const dur=Math.ceil((e-s)/86400000);
     const fmt=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
-    html+='<div style="display:flex;align-items:center;border-bottom:1px solid var(--sand);min-height:44px">';
-    html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
+    html+='<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);min-height:44px">';
+    html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--text);border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
     html+=j.name+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
     html+='</div>';
     // Skip if completely outside view
