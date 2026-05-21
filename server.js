@@ -1149,7 +1149,7 @@ async function loadDashboard() {
   } catch(e) {
     if(e.message === 'Session expired' || e.message === 'Not authenticated') return;
     document.getElementById('dash-sub').textContent = 'Error loading data';
-    document.getElementById('dash-stats').innerHTML = `<div class="alert alert-red" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Failed to load: ${e.message}</span><a href="/connect" style="background:var(--danger);color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:12px;white-space:nowrap">Reconnect Xero</a></div>`;
+    document.getElementById('dash-stats').innerHTML = '<div class="alert alert-red" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Failed to load: '+(e.message||'Unknown error')+'</span><a href="/connect" style="background:var(--danger);color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:12px;white-space:nowrap">Reconnect Xero</a></div>';
     document.getElementById('dash-in').innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">Unable to load — reconnect Xero above</div>';
     document.getElementById('dash-out').innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">Unable to load — reconnect Xero above</div>';
   }
