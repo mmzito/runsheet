@@ -40,7 +40,11 @@ async function getClient() {
 }
 
 function requireAuth(req, res, next) {
-  if (!req.session.tokenSet) return res.redirect('/connect');
+  if (!req.session.tokenSet) {
+    // API routes: return JSON 401 so client can handle gracefully
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Session expired. Please reconnect.', needsReconnect: true });
+    return res.redirect('/connect');
+  }
   next();
 }
 
@@ -1047,8 +1051,23 @@ function nav(id) {
 
 async function api(url) {
   if(IS_DEMO) return demoData(url);
-  const r = await fetch(url);
-  if(!r.ok) throw new Error(await r.text());
+  const r = await fetch(url, {redirect: 'manual'});
+  // If server redirected to /connect, session has expired — force reconnect
+  if(r.type === 'opaqueredirect' || r.status === 302 || r.redirected) {
+    document.getElementById('dash-sub').textContent = 'Session expired — reconnecting...';
+    window.location.href = '/connect';
+    throw new Error('Session expired');
+  }
+  if(r.status === 401 || r.status === 403) {
+    window.location.href = '/connect';
+    throw new Error('Not authenticated');
+  }
+  if(!r.ok) {
+    let errMsg = '';
+    try { const j = await r.json(); errMsg = j.error || j.message || r.statusText; } catch(e) { errMsg = r.statusText; }
+    if(errMsg && errMsg.toLowerCase().includes('reconnect')) window.location.href = '/connect';
+    throw new Error(errMsg || 'API error ' + r.status);
+  }
   return r.json();
 }
 
@@ -1127,10 +1146,14 @@ async function loadDashboard() {
       out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
     toast('Data loaded ✓');
   } catch(e) {
-    document.getElementById('dash-stats').innerHTML = \`<div class="alert alert-red">Failed to load: \${e.message} — <a href="/connect" style="color:var(--danger)">Reconnect Xero</a></div>\`;
+  } catch(e) {
+    if(e.message === 'Session expired' || e.message === 'Not authenticated') return;
+    document.getElementById('dash-sub').textContent = 'Error loading data';
+    document.getElementById('dash-stats').innerHTML = `<div class="alert alert-red" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Failed to load: ${e.message}</span><a href="/connect" style="background:var(--danger);color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:12px;white-space:nowrap">Reconnect Xero</a></div>`;
+    document.getElementById('dash-in').innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">Unable to load — reconnect Xero above</div>';
+    document.getElementById('dash-out').innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">Unable to load — reconnect Xero above</div>';
   }
 }
-
 // ── Forecast breakdown popup ──
 function showBreakdown(e) {
   e.stopPropagation();
