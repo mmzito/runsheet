@@ -234,26 +234,25 @@ app.get('/api/summary', requireAuth, async (req, res) => {
     const token = await getAccessToken(req);
     const tenantId = req.session.activeTenantId;
     if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected. Please disconnect and reconnect with Xero.', needsReconnect: true });
-    // Fetch ALL invoices in one call to inspect types
-    const allData = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&SummaryOnly=true', token, tenantId);
-    const allInvs = allData.Invoices || [];
-    console.log('ALL invoices:', allInvs.length, 'Types:', JSON.stringify([...new Set(allInvs.map(i=>i.Type))]));
-    console.log('Sample:', allInvs.slice(0,3).map(i=>({name:i.Contact?.Name, type:i.Type, amount:i.AmountDue})));
-    
-    const invoices = allInvs.filter(i => i.Type === 'ACCREC' && i.AmountDue > 0).map(i => ({
-      client: i.Contact?.Name, ref: i.InvoiceNumber,
-      amount: i.AmountDue, due: i.DueDateString?.substring(0,10), status: i.Status
+    // Fetch invoices (ACCREC) and bills (ACCPAY) separately for full data
+    const [invData, billData] = await Promise.all([
+      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCREC', token, tenantId),
+      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED,SUBMITTED&Type=ACCPAY', token, tenantId)
+    ]);
+    const rawInvoices = invData.Invoices || [];
+    const rawBills = billData.Invoices || [];
+
+    const invoices = rawInvoices.filter(i => (i.AmountDue || 0) > 0).map(i => ({
+      client: i.Contact?.Name || 'Unknown', ref: i.InvoiceNumber || '',
+      amount: i.AmountDue || 0, due: (i.DueDateString || i.DueDate || '').substring(0,10), status: i.Status
     }));
-    const bills = allInvs.filter(b => b.Type === 'ACCPAY' && b.AmountDue > 0).map(b => ({
-      supplier: b.Contact?.Name, amount: b.AmountDue,
-      due: b.DueDateString?.substring(0,10), status: b.Status
+    const bills = rawBills.filter(b => (b.AmountDue || 0) > 0).map(b => ({
+      supplier: b.Contact?.Name || 'Unknown', amount: b.AmountDue || 0,
+      due: (b.DueDateString || b.DueDate || '').substring(0,10), status: b.Status
     }));
     const totalReceivables = invoices.reduce((s,i)=>s+(i.amount||0),0);
     const totalPayables = bills.reduce((s,b)=>s+(b.amount||0),0);
-    // Include debug info temporarily
-    const typeCounts = {};
-    allInvs.forEach(i => { typeCounts[i.Type] = (typeCounts[i.Type]||0) + 1; });
-    res.json({ tenantName: req.session.activeTenantName, invoices, bills, totalReceivables, totalPayables, netPosition: totalReceivables-totalPayables, generatedAt: new Date().toISOString(), _debug: { totalFromXero: allInvs.length, typeCounts } });
+    res.json({ tenantName: req.session.activeTenantName, invoices, bills, totalReceivables, totalPayables, netPosition: totalReceivables-totalPayables, generatedAt: new Date().toISOString() });
   } catch(e) {
     console.error('Summary error:', e.message);
     res.status(500).json({ error: e.message });
