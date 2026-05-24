@@ -582,7 +582,6 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 .balance-box{margin:12px;padding:14px;background:#1D2D4E;border:1px solid #2A3F65;border-radius:var(--r);color:#E8E6DE}
 .balance-lbl{font-size:10px;color:#4A5A75;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif}
 .balance-val{font-family:'Barlow Condensed',sans-serif;font-size:24px}
-.main{flex:1;padding:24px;min-width:0;background:transparent}
 .section{display:none}.section.active{display:block}
 .page-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:#E8E6DE;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px}
 .page-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
@@ -1140,7 +1139,6 @@ async function loadDashboard() {
     document.getElementById('dash-out').innerHTML = out30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No bills due in next 30 days</div>':
       out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
     toast('Data loaded ✓');
-  } catch(e) {
   } catch(e) {
     if(e.message === 'Session expired' || e.message === 'Not authenticated') return;
     document.getElementById('dash-sub').textContent = 'Error loading data';
