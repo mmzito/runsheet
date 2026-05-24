@@ -244,13 +244,15 @@ app.get('/api/summary', requireAuth, async (req, res) => {
     // Fetch invoices/bills and bank balance in parallel
     const [allData, accountsData] = await Promise.all([
       xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&page=1', token, tenantId),
-      xeroGet('/api.xro/2.0/Accounts?Type=BANK&where=Status%3D%3D%22ACTIVE%22', token, tenantId).catch(() => ({ Accounts: [] }))
+      xeroGet('/api.xro/2.0/Accounts?Type=BANK', token, tenantId).catch(() => ({ Accounts: [] }))
     ]);
     const allInvs = allData.Invoices || [];
 
     // Calculate total bank balance from all active bank accounts
-    const bankAccounts = accountsData.Accounts || [];
-    const bankBalance = bankAccounts.reduce((sum, acc) => sum + (acc.Balance || 0), 0);
+    // Xero returns Balance (current) or CurrentBalance depending on account type
+    const bankAccounts = (accountsData.Accounts || []).filter(a => a.Status === 'ACTIVE' || !a.Status);
+    console.log('Bank accounts:', bankAccounts.map(a => ({name:a.Name, balance:a.Balance, curr:a.CurrentBalance, status:a.Status})));
+    const bankBalance = bankAccounts.reduce((sum, acc) => sum + (acc.Balance || acc.CurrentBalance || 0), 0);
 
     const invoices = allInvs.filter(i => i.Type === 'ACCREC' && (i.AmountDue || 0) > 0).map(i => ({
       client: i.Contact?.Name || 'Unknown', ref: i.InvoiceNumber || '',
@@ -527,6 +529,15 @@ function renderSharedGantt(jobs){
 }
 </script></body></html>`;
 }
+
+app.get('/api/debug-bank', requireAuth, async (req, res) => {
+  try {
+    const token = await getAccessToken(req);
+    const tenantId = req.session.activeTenantId;
+    const data = await xeroGet('/api.xro/2.0/Accounts?Type=BANK', token, tenantId);
+    res.json({ accounts: (data.Accounts||[]).map(a => ({ name:a.Name, code:a.Code, type:a.Type, status:a.Status, Balance:a.Balance, CurrentBalance:a.CurrentBalance })) });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 app.get('/api/debug-invoices', requireAuth, async (req, res) => {
   try {
