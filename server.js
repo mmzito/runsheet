@@ -183,6 +183,7 @@ async function xeroGet(path, accessToken, tenantId) {
       hostname: 'api.xero.com',
       path: path,
       method: 'GET',
+      timeout: 25000,
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Xero-tenant-id': tenantId,
@@ -197,6 +198,7 @@ async function xeroGet(path, accessToken, tenantId) {
         catch(e) { reject(new Error('Parse error: ' + data.substring(0,100))); }
       });
     });
+    req.on('timeout', () => { req.destroy(); reject(new Error('Xero request timed out')); });
     req.on('error', reject);
     req.end();
   });
@@ -234,21 +236,17 @@ app.get('/api/summary', requireAuth, async (req, res) => {
     const token = await getAccessToken(req);
     const tenantId = req.session.activeTenantId;
     if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected. Please disconnect and reconnect with Xero.', needsReconnect: true });
-    // Fetch invoices (ACCREC) and bills (ACCPAY) separately for full data
-    const [invData, billData] = await Promise.all([
-      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&Type=ACCREC', token, tenantId),
-      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED,SUBMITTED&Type=ACCPAY', token, tenantId)
-    ]);
-    const rawInvoices = invData.Invoices || [];
-    const rawBills = billData.Invoices || [];
+    // Fetch all outstanding invoices and bills in one call
+    const allData = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&page=1', token, tenantId);
+    const allInvs = allData.Invoices || [];
 
-    const invoices = rawInvoices.filter(i => (i.AmountDue || 0) > 0).map(i => ({
+    const invoices = allInvs.filter(i => i.Type === 'ACCREC' && (i.AmountDue || 0) > 0).map(i => ({
       client: i.Contact?.Name || 'Unknown', ref: i.InvoiceNumber || '',
-      amount: i.AmountDue || 0, due: (i.DueDateString || i.DueDate || '').substring(0,10), status: i.Status
+      amount: i.AmountDue || 0, due: (i.DueDateString || '').substring(0,10), status: i.Status
     }));
-    const bills = rawBills.filter(b => (b.AmountDue || 0) > 0).map(b => ({
+    const bills = allInvs.filter(b => b.Type === 'ACCPAY' && (b.AmountDue || 0) > 0).map(b => ({
       supplier: b.Contact?.Name || 'Unknown', amount: b.AmountDue || 0,
-      due: (b.DueDateString || b.DueDate || '').substring(0,10), status: b.Status
+      due: (b.DueDateString || '').substring(0,10), status: b.Status
     }));
     const totalReceivables = invoices.reduce((s,i)=>s+(i.amount||0),0);
     const totalPayables = bills.reduce((s,b)=>s+(b.amount||0),0);
