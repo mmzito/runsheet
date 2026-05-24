@@ -689,6 +689,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
     <span class="org-badge">${orgName}</span>
     ${isDemo ? '<span class="demo-badge">Demo</span>' : ''}
     ${isMultiTenant ? '<a class="btn-sm" href="/select-org">Switch Org</a>' : ''}
+    ${!isDemo ? '<button class="btn-sm" id="sync-btn" onclick="syncXero()" title="Refresh data from Xero">↻ Sync</button>' : ''}
     ${isDemo ? '<a class="btn-sm" href="/connect">Connect Xero</a>' : '<a class="btn-sm" href="/disconnect">Disconnect</a>'}
   </div>
 </div>
@@ -2060,6 +2061,38 @@ function generateAssumptions(job){
     assumptions.push({id:'asmp'+Date.now()+Math.random().toString(36).substr(2,5),jobId:job.id,jobName:job.name,description:line.name+(line.convertedQty?' \u2014 '+line.convertedQty+'m\u00b3':''),supplier:line.supplier,amount:line.lineTotal,invoiceDate:invoiceDate.toISOString().substring(0,10),dueDate:dueDate.toISOString().substring(0,10),category:line.category||line.type,status:'assumed'});
   });
   saveAssumptions(assumptions);
+}
+
+async function syncXero() {
+  const btn = document.getElementById('sync-btn');
+  if(btn) { btn.textContent = '\u21bb Syncing...'; btn.disabled = true; }
+  try {
+    await loadDashboard();
+    await Promise.allSettled([
+      api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(()=>{}),
+      api('/api/payroll').then(data => {
+        if(data && data.summary) {
+          const s=data.summary;
+          D.payroll={payRuns:data.payRuns||[],avgWeekly:{gross:s.averageWeeklyGross,super:s.averageWeeklySuper,payg:s.averageWeeklyPAYG,net:s.averageWeeklyNet},paygFrequency:getPayrollSetting('hs_payroll_payg_freq','monthly'),source:'xero'};
+        }
+      }).catch(()=>{})
+    ]);
+    // Refresh whichever section is active
+    const active = document.querySelector('.section.active');
+    if(active) {
+      const id = active.id.replace('section-','');
+      if(id==='invoices') loadInvoices();
+      else if(id==='bills') loadBills();
+      else if(id==='payroll') loadPayroll();
+      else if(id==='ato') loadATO();
+      else if(id==='forecast') buildForecast();
+    }
+    toast('Synced with Xero \u2713');
+  } catch(e) {
+    toast('Sync failed: '+e.message);
+  } finally {
+    if(btn) { btn.textContent = '\u21bb Sync'; btn.disabled = false; }
+  }
 }
 
 loadDashboard();
