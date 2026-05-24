@@ -240,9 +240,17 @@ app.get('/api/summary', requireAuth, async (req, res) => {
     const token = await getAccessToken(req);
     const tenantId = req.session.activeTenantId;
     if (!tenantId) return res.status(400).json({ error: 'No Xero organisation connected. Please disconnect and reconnect with Xero.', needsReconnect: true });
-    // Fetch all outstanding invoices and bills in one call
-    const allData = await xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&page=1', token, tenantId);
+
+    // Fetch invoices/bills and bank balance in parallel
+    const [allData, accountsData] = await Promise.all([
+      xeroGet('/api.xro/2.0/Invoices?Statuses=AUTHORISED&page=1', token, tenantId),
+      xeroGet('/api.xro/2.0/Accounts?Type=BANK&where=Status%3D%3D%22ACTIVE%22', token, tenantId).catch(() => ({ Accounts: [] }))
+    ]);
     const allInvs = allData.Invoices || [];
+
+    // Calculate total bank balance from all active bank accounts
+    const bankAccounts = accountsData.Accounts || [];
+    const bankBalance = bankAccounts.reduce((sum, acc) => sum + (acc.Balance || 0), 0);
 
     const invoices = allInvs.filter(i => i.Type === 'ACCREC' && (i.AmountDue || 0) > 0).map(i => ({
       client: i.Contact?.Name || 'Unknown', ref: i.InvoiceNumber || '',
@@ -254,7 +262,7 @@ app.get('/api/summary', requireAuth, async (req, res) => {
     }));
     const totalReceivables = invoices.reduce((s,i)=>s+(i.amount||0),0);
     const totalPayables = bills.reduce((s,b)=>s+(b.amount||0),0);
-    res.json({ tenantName: req.session.activeTenantName, invoices, bills, totalReceivables, totalPayables, netPosition: totalReceivables-totalPayables, generatedAt: new Date().toISOString() });
+    res.json({ tenantName: req.session.activeTenantName, invoices, bills, totalReceivables, totalPayables, netPosition: totalReceivables-totalPayables, bankBalance, generatedAt: new Date().toISOString() });
   } catch(e) {
     console.error('Summary error:', e.message);
     res.status(500).json({ error: e.message });
@@ -1023,7 +1031,7 @@ const IS_DEMO = ${isDemo};
     localStorage.setItem('hs_migrated', '1');
   }
 })();
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('hs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('hs_debits')||'[]'), atoQuarters:[], balance: 16875.81 };
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('hs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('hs_debits')||'[]'), atoQuarters:[], balance: parseFloat(localStorage.getItem('hs_bank_balance') || '0') };
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -1122,6 +1130,14 @@ async function loadDashboard() {
   try {
     const data = await api('/api/summary');
     D.invoices = data.invoices||[]; D.bills = data.bills||[];
+    // Update bank balance from Xero if available
+    if (data.bankBalance !== undefined && data.bankBalance !== 0) {
+      D.balance = data.bankBalance;
+      localStorage.setItem('hs_bank_balance', D.balance.toString());
+    } else if (D.balance === 0 && data.bankBalance === 0) {
+      // Keep last known balance from localStorage
+      D.balance = parseFloat(localStorage.getItem('hs_bank_balance') || '0');
+    }
     document.getElementById('sidebar-balance').textContent = fc(D.balance);
     document.getElementById('dash-sub').textContent = IS_DEMO ? 'Demo data — Creted Civil Pty Ltd' : 'Live data from '+data.tenantName+' · '+new Date().toLocaleTimeString('en-AU');
     const now=new Date(), d30=new Date(); d30.setDate(d30.getDate()+30);
