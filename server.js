@@ -16,7 +16,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'headstart-dev-secret-change-in-prod',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
+  cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000, sameSite: 'none', httpOnly: true }
 }));
 
 const CLIENT_ID = process.env.XERO_CLIENT_ID;
@@ -1048,21 +1048,15 @@ function nav(id) {
 
 async function api(url) {
   if(IS_DEMO) return demoData(url);
-  const r = await fetch(url, {redirect: 'manual'});
-  // If server redirected to /connect, session has expired — force reconnect
-  if(r.type === 'opaqueredirect' || r.status === 302 || r.redirected) {
-    document.getElementById('dash-sub').textContent = 'Session expired — reconnecting...';
-    window.location.href = '/connect';
+  const r = await fetch(url, {credentials: 'same-origin'});
+  if(r.status === 401 || r.status === 403) {
+    document.getElementById('dash-sub').textContent = 'Session expired — tap to reconnect';
+    document.getElementById('dash-stats').innerHTML = '<div class="alert alert-red" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><span>Session expired</span><a href="/connect" style="background:var(--danger);color:#fff;padding:6px 14px;border-radius:4px;text-decoration:none;font-size:12px">Reconnect Xero</a></div>';
     throw new Error('Session expired');
   }
-  if(r.status === 401 || r.status === 403) {
-    window.location.href = '/connect';
-    throw new Error('Not authenticated');
-  }
   if(!r.ok) {
-    let errMsg = '';
-    try { const j = await r.json(); errMsg = j.error || j.message || r.statusText; } catch(e) { errMsg = r.statusText; }
-    if(errMsg && errMsg.toLowerCase().includes('reconnect')) window.location.href = '/connect';
+    let errMsg = r.statusText;
+    try { const j = await r.json(); errMsg = j.error || j.message || r.statusText; } catch(e) {}
     throw new Error(errMsg || 'API error ' + r.status);
   }
   return r.json();
