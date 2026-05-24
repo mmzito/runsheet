@@ -1137,7 +1137,7 @@ async function loadDashboard() {
       in30.slice(0,6).map(i=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${i.client||i.ref}</b><div style="font-size:11px;color:var(--muted)">Due \${i.due}</div></div><b style="color:var(--accent)">\${fc(i.amount)}</b></div>\`).join('');
     const out30 = D.bills.filter(b=>new Date(b.due)<=d30&&new Date(b.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-out').innerHTML = out30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No bills due in next 30 days</div>':
-      out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${b.supplier||'Supplier'}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
+      out30.slice(0,6).map(b=>\`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px"><div><b>\${b.supplier||"Supplier"}</b><div style="font-size:11px;color:var(--muted)">Due \${b.due}</div></div><b style="color:var(--danger)">\${fc(b.amount)}</b></div>\`).join('');
     toast('Data loaded ✓');
   } catch(e) {
     if(e.message === 'Session expired' || e.message === 'Not authenticated') return;
@@ -1267,16 +1267,16 @@ async function buildForecast() {
     weeks.push({w:w+1,ws,we,inflows,outflows:totalOut,balance,mo,isDanger:balance<threshold,isNeg:balance<0,tagLabels,inBD:JSON.stringify(inBreakdown),outBD:JSON.stringify(outBreakdown)});
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
-  document.getElementById('forecast-rows').innerHTML = weeks.map(w=>{const ib=w.inBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');const ob=w.outBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');return \`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
+  document.getElementById('forecast-rows').innerHTML = weeks.map(w=>{const ib=w.inBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');const ob=w.outBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');return \`<div class="week-row \${w.isNeg?"danger-row":w.isDanger?"amber-row":""}">
     <div class="wk-lbl">Wk \${w.w}</div><div class="wk-mo">\${w.mo}</div>
-    <div class="wk-in \${w.inflows>0?'fc-click':''}" \${w.inflows>0?'data-bd-title=Inflows data-bd=\"'+ib+'\"':''}>\${w.inflows>0?'+'+fc(w.inflows):'—'}</div>
-    <div class="wk-out \${w.outflows>0?'fc-click':''}" \${w.outflows>0?'data-bd-title=Outflows data-bd=\"'+ob+'\"':''}>\${w.outflows>0?'-'+fc(w.outflows):'—'}</div>
-    <div class="wk-bal \${w.isNeg?'neg':w.isDanger?'low':'ok'}">\${fc(w.balance)}</div>
+    <div class="wk-in \${w.inflows>0?"fc-click":""}" \${w.inflows>0?'data-bd-title=Inflows data-bd=\""+ib+"\"":"'}>\${w.inflows>0?"+"+fc(w.inflows):"—"}</div>
+    <div class="wk-out \${w.outflows>0?"fc-click":""}" \${w.outflows>0?'data-bd-title=Outflows data-bd=\""+ob+"\"":"'}>\${w.outflows>0?"-"+fc(w.outflows):"—"}</div>
+    <div class="wk-bal \${w.isNeg?"neg":w.isDanger?"low":"ok"}">\${fc(w.balance)}</div>
     <div class="wk-bar">
       \${w.inflows>0?\`<div class="bar-in" style="width:\${Math.min(Math.round(w.inflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.outflows>0?\`<div class="bar-out" style="width:\${Math.min(Math.round(w.outflows/maxFlow*180),180)}px"></div>\`:''}
       \${w.tagLabels&&w.tagLabels.length?w.tagLabels.map(l=>\` <span style="font-size:10px;background:var(--dark);color:#fff;padding:1px 6px;border-radius:3px">\${l}</span>\`).join(''):''}
-      \${w.isDanger?' <span style="font-size:11px;color:var(--danger);font-weight:700">!</span>':''}
+      \${w.isDanger?" <span style="font-size:11px;color:var(--danger);font-weight:700">!</span>":""}
     </div></div>\`;}).join('');
 }
 
@@ -1288,7 +1288,7 @@ async function loadInvoices() {
     const total=invs.reduce((s,i)=>s+(i.amount||0),0), od=invs.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
     document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
-      invs.map(i=>{const d=days(i.due);return\`<tr><td><b>\${i.client||'—'}</b></td><td style="font-size:11px;color:var(--muted)">\${i.ref||'—'}</td><td><b>\${fc(i.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${i.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
+      invs.map(i=>{const d=days(i.due);return\`<tr><td><b>\${i.client||"—"}</b></td><td style="font-size:11px;color:var(--muted)">\${i.ref||"—"}</td><td><b>\${fc(i.amount)}</b></td><td style="color:\${d<0?"var(--danger)":d<=7?"var(--amber)":"inherit"}">\${i.due||"—"}</td><td style="color:\${d<0?"var(--danger)":d<=7?"var(--amber)":"inherit"};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+" OD":d+" days"}</td><td><span class="badge \${d<0?"br":d<=7?"ba":"bg"}">\${d<0?"Overdue":"Current"}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
@@ -1300,7 +1300,7 @@ async function loadBills() {
     const total=bls.reduce((s,b)=>s+(b.amount||0),0), od=bls.filter(b=>days(b.due)<0).reduce((s,b)=>s+(b.amount||0),0);
     document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
     document.getElementById('bill-tbody').innerHTML = bls.length===0?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No outstanding bills</td></tr>':
-      bls.map(b=>{const d=days(b.due);return\`<tr><td><b>\${b.supplier||'—'}</b></td><td><b>\${fc(b.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${b.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
+      bls.map(b=>{const d=days(b.due);return\`<tr><td><b>\${b.supplier||"—"}</b></td><td><b>\${fc(b.amount)}</b></td><td style="color:\${d<0?"var(--danger)":d<=7?"var(--amber)":"inherit"}">\${b.due||"—"}</td><td style="color:\${d<0?"var(--danger)":d<=7?"var(--amber)":"inherit"};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+" OD":d+" days"}</td><td><span class="badge \${d<0?"br":d<=7?"ba":"bg"}">\${d<0?"Overdue":"Current"}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="5" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
@@ -1347,8 +1347,8 @@ async function loadPayroll() {
     document.getElementById('payroll-stats').innerHTML = \`
       <div class="stat"><div class="stat-lbl">Avg Weekly Payroll</div><div class="stat-val">\${fc(avg.gross)}</div><div class="stat-sub">gross wages</div></div>
       <div class="stat amber"><div class="stat-lbl">Weekly Super</div><div class="stat-val">\${fc(avg.super)}</div><div class="stat-sub">11.5% obligation</div></div>
-      <div class="stat"><div class="stat-lbl">\${paygFreq === 'monthly' ? 'Monthly' : 'Weekly'} PAYG W/H</div><div class="stat-val">\${fc(paygFreq === 'monthly' ? monthlyPayg : avg.payg)}</div><div class="stat-sub">\${paygFreq === 'monthly' ? 'accumulated monthly' : 'per week'}</div></div>
-      <div class="stat"><div class="stat-lbl">Next Pay Run</div><div class="stat-val" style="font-size:20px">\${nextPayDate}</div><div class="stat-sub">\${nextPayRun ? nextPayRun.status : 'estimated'}</div></div>
+      <div class="stat"><div class="stat-lbl">\${paygFreq === "monthly" ? "Monthly" : "Weekly"} PAYG W/H</div><div class="stat-val">\${fc(paygFreq === "monthly" ? monthlyPayg : avg.payg)}</div><div class="stat-sub">\${paygFreq === "monthly" ? "accumulated monthly" : "per week"}</div></div>
+      <div class="stat"><div class="stat-lbl">Next Pay Run</div><div class="stat-val" style="font-size:20px">\${nextPayDate}</div><div class="stat-sub">\${nextPayRun ? nextPayRun.status : "estimated"}</div></div>
     \`;
 
     // Source indicator
@@ -1513,22 +1513,22 @@ function renderATO() {
     if (qKey === curQKey) curQGST = q.netGST;
     const periodLabel = new Date(q.start).toLocaleDateString('en-AU',{month:'short',year:'2-digit'}) + ' – ' + new Date(q.end).toLocaleDateString('en-AU',{month:'short',year:'2-digit'});
     const isPast = dueDateObj < now;
-    return \`<tr style="\${isPast?'opacity:0.6':''}">
+    return \`<tr style="\${isPast?"opacity:0.6":""}">
       <td><b>\${q.fy} \${q.q}</b></td>
       <td style="font-size:12px">\${periodLabel}</td>
       <td style="color:var(--accent)">\${fc(q.gstCollected)}</td>
       <td style="color:var(--danger)">\${fc(q.gstPaid)}</td>
       <td><b>\${fc(q.netGST)}</b></td>
-      <td><input type="number" value="\${paygWH||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
-      <td><input type="number" value="\${paygInst||''}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
-      <td><b style="color:\${basPayable>0?'var(--danger)':'var(--accent)'};">\${fc(basPayable)}</b></td>
-      <td style="font-size:12px;\${!isPast&&dueDateObj<new Date(Date.now()+30*86400000)?'color:var(--amber);font-weight:700':''}">\${dueDate}</td>
-      <td><b style="color:\${rolling>0?'var(--danger)':'var(--accent)'};">\${fc(rolling)}</b></td>
+      <td><input type="number" value="\${paygWH||""}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_wh_\${qKey}',this.value);renderATO()"></td>
+      <td><input type="number" value="\${paygInst||""}" placeholder="0" style="width:80px;padding:4px 6px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" onchange="saveATOSetting('hs_ato_payg_inst_\${qKey}',this.value);renderATO()"></td>
+      <td><b style="color:\${basPayable>0?"var(--danger)":"var(--accent)"};">\${fc(basPayable)}</b></td>
+      <td style="font-size:12px;\${!isPast&&dueDateObj<new Date(Date.now()+30*86400000)?"color:var(--amber);font-weight:700":""}">\${dueDate}</td>
+      <td><b style="color:\${rolling>0?"var(--danger)":"var(--accent)"};">\${fc(rolling)}</b></td>
     </tr>\`;
   }).join('');
   document.getElementById('ato-tbody').innerHTML = rows;
   document.getElementById('ato-stats').innerHTML = \`
-    <div class="stat \${nextDue?'amber':''}"><div class="stat-lbl">Next BAS Due</div><div class="stat-val">\${nextDue||'—'}</div><div class="stat-sub">\${nextAmt!=null?fc(nextAmt)+' payable':''}</div></div>
+    <div class="stat \${nextDue?"amber":""}"><div class="stat-lbl">Next BAS Due</div><div class="stat-val">\${nextDue||"—"}</div><div class="stat-sub">\${nextAmt!=null?fc(nextAmt)+" payable":""}</div></div>
     <div class="stat \${rolling>0?"red":""}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?"neg":""}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
     <div class="stat"><div class="stat-lbl">Current Quarter GST</div><div class="stat-val">\${fc(curQGST)}</div><div class="stat-sub">net GST position</div></div>\`;
 }
@@ -1554,10 +1554,10 @@ function renderJobs() {
     <thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Payment Date</th><th>Cash Gap</th><th>Status</th><th></th></tr></thead>
     <tbody>\${D.jobs.map((j,i)=>{const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
-    <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
-    <td style="font-size:12px">\${j.paymentDate||'—'}</td>
-    <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' (long gap)':''):'—'}</td>
-    <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
+    <td style="font-weight:700;color:\${isLoss?"var(--danger)":parseFloat(margin)>=20?"var(--accent)":"var(--amber)"}">\${margin}%</td>
+    <td style="font-size:12px">\${j.paymentDate||"—"}</td>
+    <td style="font-weight:700;color:\${gapDays&&gapDays>45?"var(--danger)":"inherit"}">\${gapDays?gapDays+" days"+(gapDays>45?" (long gap)":""):"—"}</td>
+    <td><span class="badge \${isLoss?"br":parseFloat(margin)>=20?"bg":"ba"}">\${isLoss?"Loss":parseFloat(margin)>=20?"On Target":"Below"}</span></td>
     <td><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
     </tbody></table></div></div>\`;
 }
@@ -1576,12 +1576,12 @@ function previewJob() {
   const isLoss=parseFloat(margin)<0;
   document.getElementById('job-preview').innerHTML=\`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
     <div>Revenue: <b style="color:var(--accent)">\${fc(rev)}</b></div><div>Costs: <b style="color:var(--danger)">\${fc(costs)}</b></div>
-    <div>Gross profit: <b>\${fc(gp)}</b></div><div>Margin: <b style="color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</b></div>
+    <div>Gross profit: <b>\${fc(gp)}</b></div><div>Margin: <b style="color:\${isLoss?"var(--danger)":parseFloat(margin)>=20?"var(--accent)":"var(--amber)"}">\${margin}%</b></div>
     \${payDate?\`<div>Est. payment: <b>\${payDate}</b></div>\`:''}
-    \${gapDays?\`<div>Cash gap: <b style="color:\${gapDays>45?'var(--danger)':'inherit'}">\${gapDays} days</b></div>\`:''}
+    \${gapDays?\`<div>Cash gap: <b style="color:\${gapDays>45?"var(--danger)":"inherit"}">\${gapDays} days</b></div>\`:''}
   </div>
-  \${isLoss?'<div class="alert alert-red" style="margin-top:8px">Loss-making. Do not accept without renegotiating rates.</div>':''}
-  \${gapDays&&gapDays>45?'<div class="alert alert-amber" style="margin-top:8px">Large cash gap — consider requesting a progress claim.</div>':''}\`;
+  \${isLoss?"<div class="alert alert-red" style="margin-top:8px">Loss-making. Do not accept without renegotiating rates.</div>":""}
+  \${gapDays&&gapDays>45?"<div class="alert alert-amber" style="margin-top:8px">Large cash gap — consider requesting a progress claim.</div>":""}\`;
 }
 
 function saveJob() {
@@ -1748,7 +1748,7 @@ function renderDebits() {
   document.getElementById('debit-stats').innerHTML = \`
     <div class="stat amber"><div class="stat-lbl">Monthly Commitment</div><div class="stat-val">\${fc(totalMonthly)}</div><div class="stat-sub">all active debits</div></div>
     <div class="stat"><div class="stat-lbl">Weekly Commitment</div><div class="stat-val">\${fc(totalWeekly)}</div></div>
-    <div class="stat \${next && days(next.nextDate) <= 7 ? 'red' : ''}"><div class="stat-lbl">Next Debit Due</div><div class="stat-val" style="font-size:18px">\${next ? next.name : 'None'}</div><div class="stat-sub">\${next ? next.nextDate + ' · ' + fc(next.amount) : ''}</div></div>
+    <div class="stat \${next && days(next.nextDate) <= 7 ? "red" : ""}"><div class="stat-lbl">Next Debit Due</div><div class="stat-val" style="font-size:18px">\${next ? next.name : "None"}</div><div class="stat-sub">\${next ? next.nextDate + " · " + fc(next.amount) : ""}</div></div>
     <div class="stat"><div class="stat-lbl">Active Debits</div><div class="stat-val">\${active.length}</div></div>\`;
   
   // Table
@@ -1761,14 +1761,14 @@ function renderDebits() {
     const annual = (parseFloat(d.amount)||0) * (freqMultiplier[d.frequency]||12);
     const expired = d.endDate && new Date(d.endDate) < now;
     const dueSoon = !expired && days(d.nextDate) <= 7 && days(d.nextDate) >= 0;
-    return \`<tr style="\${expired ? 'opacity:0.4;text-decoration:line-through;' : ''}\${dueSoon ? 'background:rgba(192,57,43,0.06);' : ''}">
+    return \`<tr style="\${expired ? "opacity:0.4;text-decoration:line-through;" : ""}\${dueSoon ? "background:rgba(192,57,43,0.06);" : ""}">
       <td><b>\${d.name}</b></td>
-      <td><span class="badge \${d.category==='ATO Payment Plan'?'br':d.category.includes('Finance')?'ba':'bg'}">\${d.category}</span></td>
+      <td><span class="badge \${d.category==="ATO Payment Plan"?"br":d.category.includes("Finance")?"ba":"bg"}">\${d.category}</span></td>
       <td><b>\${fc(d.amount)}</b></td>
       <td>\${d.frequency}</td>
-      <td style="color:\${dueSoon?'var(--danger)':'inherit'};font-weight:\${dueSoon?700:400}">\${d.nextDate||'—'}</td>
-      <td style="font-size:12px;color:var(--muted)">\${d.endDate||'—'}</td>
-      <td style="font-size:12px;color:var(--muted)">\${d.reference||'—'}</td>
+      <td style="color:\${dueSoon?"var(--danger)":"inherit"};font-weight:\${dueSoon?700:400}">\${d.nextDate||"—"}</td>
+      <td style="font-size:12px;color:var(--muted)">\${d.endDate||"—"}</td>
+      <td style="font-size:12px;color:var(--muted)">\${d.reference||"—"}</td>
       <td>\${fc(annual)}/yr</td>
       <td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="editDebit('\${d.id}')">Edit</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteDebit('\${d.id}')">✕</button></td>
     </tr>\`;
@@ -1917,7 +1917,7 @@ function renderRates(){
   const lastUpd=rates.length>0?rates.map(r=>r.updatedAt||'').sort().reverse()[0]:'\u2014';
   document.getElementById('rates-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Total Rates</div><div class="stat-val">\${rates.length}</div><div class="stat-sub">in library</div></div><div class="stat"><div class="stat-lbl">Avg Rate</div><div class="stat-val">\${fc(avg)}</div><div class="stat-sub">per unit</div></div><div class="stat"><div class="stat-lbl">Last Updated</div><div class="stat-val" style="font-size:18px">\${lastUpd||'\u2014'}</div></div>\`;
   if(rates.length===0){document.getElementById('rates-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--muted)">No rates. Click + Add Rate to get started.</td></tr>';return;}
-  document.getElementById('rates-tbody').innerHTML=rates.map(r=>\`<tr><td><b>\${r.name}</b></td><td><span class="badge bg" style="font-size:10px">\${r.category}</span></td><td style="font-size:12px">\${r.unit}</td><td><b>\${fc(r.rate)}</b></td><td style="font-size:12px;color:var(--muted)">\${r.supplier||'\u2014'}</td><td style="font-size:12px">\${r.supplierTerms||'\u2014'}</td><td style="font-size:12px">\${r.areaConversion&&r.thickness?r.thickness+'m':'\u2014'}</td><td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="openRateModal('\${r.id}')">Edit</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteRate('\${r.id}')">\u2715</button></td></tr>\`).join('');
+  document.getElementById('rates-tbody').innerHTML=rates.map(r=>\`<tr><td><b>\${r.name}</b></td><td><span class="badge bg" style="font-size:10px">\${r.category}</span></td><td style="font-size:12px">\${r.unit}</td><td><b>\${fc(r.rate)}</b></td><td style="font-size:12px;color:var(--muted)">\${r.supplier||'\u2014'}</td><td style="font-size:12px">\${r.supplierTerms||'\u2014'}</td><td style="font-size:12px">\${r.areaConversion&&r.thickness?r.thickness+"m":'\u2014'}</td><td style="white-space:nowrap"><button class="btn btn-outline" style="font-size:11px;padding:3px 7px;margin-right:4px" onclick="openRateModal('\${r.id}')">Edit</button><button class="btn btn-outline" style="font-size:11px;padding:3px 7px" onclick="deleteRate('\${r.id}')">\u2715</button></td></tr>\`).join('');
 }
 
 function openRateModal(editId){
