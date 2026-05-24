@@ -1128,9 +1128,9 @@ async function loadDashboard() {
     const od = D.invoices.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('dash-stats').innerHTML = \`
       <div class="stat"><div class="stat-lbl">Total Receivables</div><div class="stat-val">\${fc(data.totalReceivables)}</div><div class="stat-sub">unpaid invoices</div></div>
-      <div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div><div class="stat-sub">\${od>0?'follow up now':'all current'}</div></div>
+      <div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div><div class="stat-sub">\${od>0?"follow up now":"all current"}</div></div>
       <div class="stat amber"><div class="stat-lbl">Total Payables</div><div class="stat-val">\${fc(data.totalPayables)}</div><div class="stat-sub">outstanding bills</div></div>
-      <div class="stat"><div class="stat-lbl">Net Position</div><div class="stat-val \${data.netPosition<0?'neg':''}">\${fc(data.netPosition)}</div><div class="stat-sub">receivables minus payables</div></div>\`;
+      <div class="stat"><div class="stat-lbl">Net Position</div><div class="stat-val \${data.netPosition<0?"neg":""}">\${fc(data.netPosition)}</div><div class="stat-sub">receivables minus payables</div></div>\`;
     if(od>0) document.getElementById('dash-alerts').innerHTML = \`<div class="alert alert-amber"><b>\${fc(od)}</b> in overdue invoices — chase these immediately</div>\`;
     const in30 = D.invoices.filter(i=>new Date(i.due)<=d30&&new Date(i.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-in').innerHTML = in30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No invoices due in next 30 days</div>':
@@ -1286,7 +1286,7 @@ async function loadInvoices() {
     const data = IS_DEMO ? {invoices:D.invoices} : await api('/api/invoices');
     const invs = data.invoices||[];
     const total=invs.reduce((s,i)=>s+(i.amount||0),0), od=invs.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
-    document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
+    document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
     document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
       invs.map(i=>{const d=days(i.due);return\`<tr><td><b>\${i.client||'—'}</b></td><td style="font-size:11px;color:var(--muted)">\${i.ref||'—'}</td><td><b>\${fc(i.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${i.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
@@ -1298,7 +1298,7 @@ async function loadBills() {
     const data = IS_DEMO ? {bills:D.bills} : await api('/api/bills');
     const bls = data.bills||[];
     const total=bls.reduce((s,b)=>s+(b.amount||0),0), od=bls.filter(b=>days(b.due)<0).reduce((s,b)=>s+(b.amount||0),0);
-    document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
+    document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
     document.getElementById('bill-tbody').innerHTML = bls.length===0?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No outstanding bills</td></tr>':
       bls.map(b=>{const d=days(b.due);return\`<tr><td><b>\${b.supplier||'—'}</b></td><td><b>\${fc(b.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${b.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="5" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
@@ -1529,7 +1529,7 @@ function renderATO() {
   document.getElementById('ato-tbody').innerHTML = rows;
   document.getElementById('ato-stats').innerHTML = \`
     <div class="stat \${nextDue?'amber':''}"><div class="stat-lbl">Next BAS Due</div><div class="stat-val">\${nextDue||'—'}</div><div class="stat-sub">\${nextAmt!=null?fc(nextAmt)+' payable':''}</div></div>
-    <div class="stat \${rolling>0?'red':''}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?'neg':''}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
+    <div class="stat \${rolling>0?"red":""}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?"neg":""}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
     <div class="stat"><div class="stat-lbl">Current Quarter GST</div><div class="stat-val">\${fc(curQGST)}</div><div class="stat-sub">net GST position</div></div>\`;
 }
 
