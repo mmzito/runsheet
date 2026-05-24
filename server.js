@@ -1128,9 +1128,9 @@ async function loadDashboard() {
     const od = D.invoices.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('dash-stats').innerHTML = \`
       <div class="stat"><div class="stat-lbl">Total Receivables</div><div class="stat-val">\${fc(data.totalReceivables)}</div><div class="stat-sub">unpaid invoices</div></div>
-      <div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div><div class="stat-sub">\${od>0?"follow up now":"all current"}</div></div>
+      <div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue Invoices</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div><div class="stat-sub">\${od>0?'follow up now':'all current'}</div></div>
       <div class="stat amber"><div class="stat-lbl">Total Payables</div><div class="stat-val">\${fc(data.totalPayables)}</div><div class="stat-sub">outstanding bills</div></div>
-      <div class="stat"><div class="stat-lbl">Net Position</div><div class="stat-val \${data.netPosition<0?"neg":""}">\${fc(data.netPosition)}</div><div class="stat-sub">receivables minus payables</div></div>\`;
+      <div class="stat"><div class="stat-lbl">Net Position</div><div class="stat-val \${data.netPosition<0?'neg':''}">\${fc(data.netPosition)}</div><div class="stat-sub">receivables minus payables</div></div>\`;
     if(od>0) document.getElementById('dash-alerts').innerHTML = \`<div class="alert alert-amber"><b>\${fc(od)}</b> in overdue invoices — chase these immediately</div>\`;
     const in30 = D.invoices.filter(i=>new Date(i.due)<=d30&&new Date(i.due)>=now).sort((a,b)=>new Date(a.due)-new Date(b.due));
     document.getElementById('dash-in').innerHTML = in30.length===0?'<div style="color:var(--muted);text-align:center;padding:16px;font-size:13px">No invoices due in next 30 days</div>':
@@ -1286,7 +1286,7 @@ async function loadInvoices() {
     const data = IS_DEMO ? {invoices:D.invoices} : await api('/api/invoices');
     const invs = data.invoices||[];
     const total=invs.reduce((s,i)=>s+(i.amount||0),0), od=invs.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
-    document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
+    document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
     document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
       invs.map(i=>{const d=days(i.due);return\`<tr><td><b>\${i.client||'—'}</b></td><td style="font-size:11px;color:var(--muted)">\${i.ref||'—'}</td><td><b>\${fc(i.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${i.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
@@ -1298,7 +1298,7 @@ async function loadBills() {
     const data = IS_DEMO ? {bills:D.bills} : await api('/api/bills');
     const bls = data.bills||[];
     const total=bls.reduce((s,b)=>s+(b.amount||0),0), od=bls.filter(b=>days(b.due)<0).reduce((s,b)=>s+(b.amount||0),0);
-    document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?"red":""}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?"neg":""}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
+    document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
     document.getElementById('bill-tbody').innerHTML = bls.length===0?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No outstanding bills</td></tr>':
       bls.map(b=>{const d=days(b.due);return\`<tr><td><b>\${b.supplier||'—'}</b></td><td><b>\${fc(b.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${b.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
   } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="5" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
@@ -1529,7 +1529,7 @@ function renderATO() {
   document.getElementById('ato-tbody').innerHTML = rows;
   document.getElementById('ato-stats').innerHTML = \`
     <div class="stat \${nextDue?'amber':''}"><div class="stat-lbl">Next BAS Due</div><div class="stat-val">\${nextDue||'—'}</div><div class="stat-sub">\${nextAmt!=null?fc(nextAmt)+' payable':''}</div></div>
-    <div class="stat \${rolling>0?"red":""}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?"neg":""}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
+    <div class="stat \${rolling>0?'red':''}"><div class="stat-lbl">Total ATO Liability</div><div class="stat-val \${rolling>0?'neg':''}">\${fc(rolling)}</div><div class="stat-sub">rolling balance incl. opening</div></div>
     <div class="stat"><div class="stat-lbl">Current Quarter GST</div><div class="stat-val">\${fc(curQGST)}</div><div class="stat-sub">net GST position</div></div>\`;
 }
 
@@ -1961,41 +1961,41 @@ function renderCostLines(){
   let html='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#152238"><th style="padding:6px 8px;text-align:left;font-size:10px">Type</th><th style="padding:6px 8px;text-align:left;font-size:10px">Item</th><th style="padding:6px 8px;text-align:right;font-size:10px">Qty</th><th style="padding:6px 8px;font-size:10px">Unit</th><th style="padding:6px 8px;text-align:right;font-size:10px">Rate</th><th style="padding:6px 8px;text-align:right;font-size:10px">Total</th><th style="padding:6px 8px"></th></tr></thead><tbody>';
   costLines.forEach(function(line){
     let row='';
-    const rmBtn='<td><button onclick="removeCostLine(\''+line.id+'\')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">\u00d7</button></td>';
+    const rmBtn='<td><button onclick="removeCostLine('+line.id+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">\u00d7</button></td>';
     if(line.type==='material'){
       const so=mr.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
       const rObj=mr.find(r=>r.id===line.rateId)||{};
       const qu=rObj.areaConversion?'m\u00b2':(rObj.unit||line.quantityUnit||'');
       row='<td><span style="font-size:10px;background:rgba(46,196,182,0.1);color:#2EC4B6;padding:2px 6px;border-radius:3px">MAT</span></td>'
-        +'<td><select onchange="onMaterialSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="0" step="0.01" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td><select onchange="onMaterialSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="0" step="0.01" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">'+qu+'</td>'
         +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='labour'){
       row='<td><span style="font-size:10px;background:rgba(244,162,97,0.1);color:#F4A261;padding:2px 6px;border-radius:3px">LAB</span></td>'
-        +'<td><input type="text" value="'+line.name+'" placeholder="Labour" onchange="onLabourNameChange(\''+line.id+'\',this.value)" style="padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px"></td>'
-        +'<td style="text-align:right;white-space:nowrap"><input type="number" value="'+line.crewSize+'" min="1" title="Crew" onchange="onLabourChange(\''+line.id+'\',\'crew\',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px">x<input type="number" value="'+line.days+'" min="1" title="Days" onchange="onLabourChange(\''+line.id+'\',\'days\',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px"></td>'
+        +'<td><input type="text" value="'+line.name+'" placeholder="Labour" onchange="onLabourNameChange('+line.id+',this.value)" style="padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px"></td>'
+        +'<td style="text-align:right;white-space:nowrap"><input type="number" value="'+line.crewSize+'" min="1" title="Crew" onchange="onLabourChange('+line.id+','+\'crew\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px">x<input type="number" value="'+line.days+'" min="1" title="Days" onchange="onLabourChange('+line.id+','+\'days\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px"></td>'
         +'<td style="font-size:11px">d</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.dailyRate+'" onchange="onLabourChange(\''+line.id+'\',\'rate\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.dailyRate+'" onchange="onLabourChange('+line.id+','+\'rate\'+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='plant'){
       const so=pr.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
       row='<td><span style="font-size:10px;background:rgba(99,102,241,0.1);color:#6366F1;padding:2px 6px;border-radius:3px">PLT</span></td>'
-        +'<td><select onchange="onPlantSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.days+'" min="1" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td><select onchange="onPlantSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.days+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">days</td>'
         +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='overhead'){
       const so='<option value="">Manual</option>'+or.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
       row='<td><span style="font-size:10px;background:rgba(230,57,70,0.1);color:#E63946;padding:2px 6px;border-radius:3px">OVH</span></td>'
-        +'<td><select onchange="onOverheadSelect(\''+line.id+'\',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">'+so+'</select>'
-        +(line.rateId?'':'<input type="text" value="'+line.name+'" placeholder="Description" onchange="onOverheadNameChange(\''+line.id+'\',this.value)" style="margin-top:3px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">')
+        +'<td><select onchange="onOverheadSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">'+so+'</select>'
+        +(line.rateId?'':'<input type="text" value="'+line.name+'" placeholder="Description" onchange="onOverheadNameChange('+line.id+',this.value)" style="margin-top:3px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">')
         +'</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="1" onchange="onCostQtyChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">each</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.unitRate+'" onchange="onOverheadRateChange(\''+line.id+'\',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.unitRate+'" onchange="onOverheadRateChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     }
     html+='<tr style="border-bottom:1px solid #2A3F65">'+row+rmBtn+'</tr>';
@@ -2066,4 +2066,3 @@ api('/api/payroll').then(data => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Headstart v1.4 running on port ${PORT}`));
 // deploy trigger Thu 21 May 2026 21:07:11 AEST
-// force 1779616814
