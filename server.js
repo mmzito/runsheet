@@ -60,23 +60,23 @@ app.get('/connect', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Headstart — Connect Xero</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Barlow',sans-serif;background:#1B2A4A;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.card{background:#1D2D4E;border-radius:2px;padding:48px 40px;max-width:420px;width:100%;text-align:center;border:1px solid #2A3F65}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:32px;color:#E8E6DE;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em}.logo span{color:#FF6B35}
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#0D0D0D;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#1A1A1A;border-radius:2px;padding:48px 40px;max-width:420px;width:100%;text-align:center;border:1px solid #2A2A2A}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:32px;color:#F0F0F0;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.04em}.logo span{color:#FF6B35}
 .tagline{font-size:12px;color:#6B7280;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:28px}
-h2{font-size:18px;color:#E8E6DE;margin-bottom:10px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase}p{font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:24px}
-.btn-xero{display:block;background:#FF6B35;color:#152238;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;transition:background 0.2s;margin-bottom:10px}
+h2{font-size:18px;color:#F0F0F0;margin-bottom:10px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase}p{font-size:13px;color:#6B7280;line-height:1.6;margin-bottom:24px}
+.btn-xero{display:block;background:#FF6B35;color:#141414;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.08em;text-decoration:none;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;transition:background 0.2s;margin-bottom:10px}
 .btn-xero:hover{background:#162440}
 .btn-demo{display:block;background:transparent;color:#6B7280;text-decoration:none;padding:12px;border-radius:10px;font-size:13px;border:1.5px solid #E2E8F0;transition:all 0.2s}
 .btn-demo:hover{border-color:#2EC4B6;color:#2EC4B6}
-.sec{font-size:11px;color:#4A5A75;margin-top:16px}</style></head>
+.sec{font-size:11px;color:#555555;margin-top:16px}</style></head>
 <body><div class="card">
   <div class="logo">Head<span>start</span></div>
-  <div class="tagline">Stop surviving the week. Start planning the year.</div>
+  <div class="tagline">Your financial controller — without the salary.</div>
   ${err}
   <h2>Connect your Xero account</h2>
-  <p>Headstart reads your invoices, bills, and payroll from Xero to build your 52-week cashflow forecast. Read-only — we never modify your data.</p>
+  <p>Headstart connects to your Xero and instantly becomes your financial controller. Track cashflow, forecast payments, manage your job pipeline — all without hiring a full-time numbers person. Read-only — we never modify your data.</p>
   <a class="btn-xero" href="/auth">Connect with Xero →</a>
   <a class="btn-demo" href="/app?demo=true">Try with demo data (Creted Civil)</a>
   <p class="sec">Secure OAuth 2.0 with PKCE · Read-only · Disconnect anytime</p>
@@ -213,11 +213,11 @@ app.get('/select-org', requireAuth, (req, res) => {
   const tenants = req.session.tenants || [];
   if (tenants.length <= 1) return res.redirect('/app');
   res.send(`<!DOCTYPE html><html><head><title>Select Org</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Barlow',sans-serif;background:#F7F8FC;padding:40px 20px;display:flex;justify-content:center}
-.card{background:#1D2D4E;border-radius:2px;padding:32px;max-width:480px;width:100%;border:1px solid #2A3F65}
-h2{font-size:20px;color:#1B2A4A;margin-bottom:8px}p{color:#6B7280;margin-bottom:20px;font-size:14px}
-.org{display:block;padding:14px 18px;border:1.5px solid #E2E8F0;border-radius:8px;margin-bottom:10px;text-decoration:none;color:#1B2A4A;font-weight:600;transition:all 0.15s}
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#F7F8FC;padding:40px 20px;display:flex;justify-content:center}
+.card{background:#1A1A1A;border-radius:2px;padding:32px;max-width:480px;width:100%;border:1px solid #2A2A2A}
+h2{font-size:20px;color:#0D0D0D;margin-bottom:8px}p{color:#6B7280;margin-bottom:20px;font-size:14px}
+.org{display:block;padding:14px 18px;border:1.5px solid #E2E8F0;border-radius:8px;margin-bottom:10px;text-decoration:none;color:#0D0D0D;font-weight:600;transition:all 0.15s}
 .org:hover{border-color:#2EC4B6;background:#E8F4F8}</style></head>
 <body><div class="card"><h2>Select Organisation</h2><p>Which Xero organisation do you want to connect?</p>
 ${tenants.map(t => `<a class="org" href="/select-org/${t.tenantId}">${t.tenantName}</a>`).join('')}
@@ -445,15 +445,15 @@ function buildScheduleHTML(token) {
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Headstart — Job Schedule</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--dark:#1B2A4A;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--danger:#E63946;--amber:#F4A261}
-*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Barlow',sans-serif;background:#1B2A4A;min-height:100vh;padding:20px}
-.topbar{background:#152238;padding:16px 24px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;color:#E8E6DE;text-transform:uppercase;letter-spacing:0.06em;font-weight:800}.logo span{color:#FF6B35}
+:root{--dark:#0D0D0D;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:#E8F4F8;--sand:#F7F8FC;--text:#1A1A2E;--muted:#6B7280;--border:#E2E8F0;--danger:#E63946;--amber:#F4A261}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#0D0D0D;min-height:100vh;padding:20px}
+.topbar{background:#141414;padding:16px 24px;border-radius:12px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;color:#F0F0F0;text-transform:uppercase;letter-spacing:0.06em;font-weight:800}.logo span{color:#FF6B35}
 .badge{font-size:11px;background:var(--pale);color:var(--dark);padding:4px 10px;border-radius:8px;font-weight:600}
 .card{background:#fff;border-radius:8px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
-.card-hdr{padding:13px 18px;border-bottom:1px solid #2A3F65;font-weight:700;font-size:13px}
+.card-hdr{padding:13px 18px;border-bottom:1px solid #2A2A2A;font-weight:700;font-size:13px}
 .card-body{padding:18px}
 .job{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--sand);align-items:flex-start}
 .job:last-child{border-bottom:none}
@@ -582,35 +582,35 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Headstart — ${orgName}</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--dark:#152238;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:rgba(46,196,182,0.08);--sand:#1B2A4A;--orange:#FF6B35;--text:#E8E6DE;--muted:#8A9AB5;--border:#2A3F65;--white:#E8E6DE;--danger:#E63946;--amber:#F4A261;--r:2px}
-*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Barlow',sans-serif;background:#1B2A4A;color:#E8E6DE;min-height:100vh;font-size:14px}body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(#2A3F65 1px,transparent 1px),linear-gradient(90deg,#2A3F65 1px,transparent 1px);background-size:40px 40px;opacity:0.15;pointer-events:none;z-index:0}.layout,.topbar,.main,.sidebar{position:relative;z-index:1}
-.topbar{background:#152238;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;color:#E8E6DE;text-transform:uppercase;letter-spacing:0.06em;font-weight:800}.logo span{color:#FF6B35}
+:root{--dark:#141414;--accent:#FF6B35;--accent-hover:#E55A2B;--light:#2EC4B6;--pale:rgba(46,196,182,0.08);--sand:#0D0D0D;--orange:#FF6B35;--text:#F0F0F0;--muted:#888888;--border:#2A2A2A;--white:#F0F0F0;--danger:#E63946;--amber:#F4A261;--r:2px}
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Inter',sans-serif;background:#0D0D0D;color:#F0F0F0;min-height:100vh;font-size:14px}body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(#2A2A2A 1px,transparent 1px),linear-gradient(90deg,#2A2A2A 1px,transparent 1px);background-size:40px 40px;opacity:0.06;pointer-events:none;z-index:0}.layout,.topbar,.main,.sidebar{position:relative;z-index:1}
+.topbar{background:#141414;height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:22px;color:#F0F0F0;text-transform:uppercase;letter-spacing:0.06em;font-weight:800}.logo span{color:#FF6B35}
 .topbar-right{display:flex;align-items:center;gap:14px}
 .org-badge{font-size:12px;color:rgba(255,255,255,0.5)}
 .demo-badge{background:var(--orange);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;text-transform:uppercase}
-.btn-sm{background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Barlow',sans-serif;transition:all 0.15s;text-decoration:none}
+.btn-sm{background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;text-decoration:none}
 .btn-sm:hover{border-color:var(--light);color:var(--light)}
 .layout{display:flex;min-height:calc(100vh - 58px)}
-.sidebar{width:210px;flex-shrink:0;background:#152238;border-right:1px solid #2A3F65;padding:16px 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
-.sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#4A5A75;padding:0 16px;margin:16px 0 6px;font-family:'Barlow Condensed',sans-serif}
-.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 16px;width:100%;background:transparent;border:none;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#8A9AB5;cursor:pointer;transition:all 0.15s;text-align:left;text-transform:uppercase;letter-spacing:0.06em}
-.nav-btn:hover{background:rgba(255,107,53,0.05);color:#E8E6DE}.nav-btn.active{background:rgba(255,107,53,0.08);color:#FF6B35;font-weight:700;border-left:3px solid #FF6B35}
-.balance-box{margin:12px;padding:14px;background:#1D2D4E;border:1px solid #2A3F65;border-radius:var(--r);color:#E8E6DE}
-.balance-lbl{font-size:10px;color:#4A5A75;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif}
+.sidebar{width:210px;flex-shrink:0;background:#141414;border-right:1px solid #2A2A2A;padding:16px 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
+.sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#555555;padding:0 16px;margin:16px 0 6px;font-family:'Barlow Condensed',sans-serif}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 16px;width:100%;background:transparent;border:none;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#888888;cursor:pointer;transition:all 0.15s;text-align:left;text-transform:uppercase;letter-spacing:0.06em}
+.nav-btn:hover{background:rgba(255,107,53,0.05);color:#F0F0F0}.nav-btn.active{background:rgba(255,107,53,0.08);color:#FF6B35;font-weight:700;border-left:3px solid #FF6B35}
+.balance-box{margin:12px;padding:14px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:var(--r);color:#F0F0F0}
+.balance-lbl{font-size:10px;color:#555555;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif}
 .balance-val{font-family:'Barlow Condensed',sans-serif;font-size:24px}
 .section{display:none}.section.active{display:block}
-.page-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:#E8E6DE;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px}
+.page-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:#F0F0F0;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px}
 .page-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
-.card{background:#1D2D4E;border-radius:var(--r);border:1px solid #2A3F65;overflow:hidden;margin-bottom:18px}
-.card-hdr{padding:13px 18px;border-bottom:1px solid #2A3F65;display:flex;align-items:center;justify-content:space-between}
+.card{background:#1A1A1A;border-radius:var(--r);border:1px solid #2A2A2A;overflow:hidden;margin-bottom:18px}
+.card-hdr{padding:13px 18px;border-bottom:1px solid #2A2A2A;display:flex;align-items:center;justify-content:space-between}
 .card-title{font-weight:700;font-size:13px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:0.06em}.card-body{padding:18px}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
-.stat{background:#1D2D4E;border-radius:var(--r);padding:16px 18px;border:1px solid #2A3F65;border-left:3px solid var(--light);border-top:none}
+.stat{background:#1A1A1A;border-radius:var(--r);padding:16px 18px;border:1px solid #2A2A2A;border-left:3px solid var(--light);border-top:none}
 .stat.red{border-top-color:var(--danger)}.stat.amber{border-top-color:var(--amber)}
-.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#8A9AB5;font-family:'Barlow Condensed',sans-serif;margin-bottom:6px}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#888888;font-family:'Barlow Condensed',sans-serif;margin-bottom:6px}
 .stat-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;color:var(--text)}.stat-val.neg{color:var(--danger)}
 .stat-sub{font-size:11px;color:var(--muted);margin-top:3px}
 .alert{padding:11px 14px;border-radius:2px;margin-bottom:10px;font-size:13px;display:flex;align-items:flex-start;gap:10px;line-height:1.5}
@@ -619,17 +619,17 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 .alert-green{background:rgba(46,196,182,0.08);border-left:4px solid var(--light);color:#2EC4B6}
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:#152238;color:#E8E6DE;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
-td{padding:9px 12px;border-bottom:1px solid #2A3F65;vertical-align:middle}
-tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
+th{background:#141414;color:#F0F0F0;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid #2A2A2A;vertical-align:middle}
+tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
 .badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;text-transform:uppercase;white-space:nowrap}
 .bg{background:rgba(46,196,182,0.12);color:#2EC4B6}.br{background:rgba(230,57,70,0.12);color:#E63946}.ba{background:rgba(244,162,97,0.12);color:#F4A261}.bgr{background:#f0f0f0;color:#666}
-.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'Barlow',sans-serif;transition:all 0.15s}
-.btn-primary{background:#FF6B35;color:#152238;font-weight:700}.btn-primary:hover{background:#E55A2B}
-.btn-outline{background:transparent;border:1px solid #2A3F65;color:#8A9AB5}.btn-outline:hover{border-color:#FF6B35;color:#FF6B35}
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:all 0.15s}
+.btn-primary{background:#FF6B35;color:#141414;font-weight:700}.btn-primary:hover{background:#E55A2B}
+.btn-outline{background:transparent;border:1px solid #2A2A2A;color:#888888}.btn-outline:hover{border-color:#FF6B35;color:#FF6B35}
 .loading{text-align:center;padding:32px;color:var(--muted);font-size:14px}
-.week-row{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #2A3F65;font-size:12px}
-.week-row:hover{background:#243656;border-radius:2px}
+.week-row{display:flex;align-items:center;gap:8px;padding:10px 6px;border-bottom:1px solid #2A2A2A;font-size:12px}
+.week-row:hover{background:#222222;border-radius:2px}
 .wk-lbl{width:55px;color:var(--muted);font-weight:600;flex-shrink:0;font-size:15px}
 .wk-mo{width:50px;color:var(--muted);font-size:14px;flex-shrink:0}
 .wk-in{width:100px;color:var(--accent);font-weight:700;text-align:right;flex-shrink:0;font-size:15px}
@@ -642,21 +642,21 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
 .danger-row{background:rgba(230,57,70,0.06);border-radius:4px}.amber-row{background:rgba(244,162,97,0.07);border-radius:4px}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
 .modal-overlay.open{display:flex}
-.modal{background:#1D2D4E;border-radius:2px;border:1px solid #2A3F65;width:100%;max-width:560px;box-shadow:0 12px 48px rgba(0,0,0,0.2);margin:auto}
-.modal-hdr{padding:16px 22px;border-bottom:1px solid #2A3F65;display:flex;align-items:center;justify-content:space-between}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;color:#E8E6DE;text-transform:uppercase;letter-spacing:0.04em}
+.modal{background:#1A1A1A;border-radius:2px;border:1px solid #2A2A2A;width:100%;max-width:560px;box-shadow:0 12px 48px rgba(0,0,0,0.2);margin:auto}
+.modal-hdr{padding:16px 22px;border-bottom:1px solid #2A2A2A;display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;color:#F0F0F0;text-transform:uppercase;letter-spacing:0.04em}
 .modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)}.modal-close:hover{color:var(--danger)}
-.modal-body{padding:22px}.modal-footer{padding:14px 22px;border-top:1px solid #2A3F65;display:flex;justify-content:flex-end;gap:10px}
+.modal-body{padding:22px}.modal-footer{padding:14px 22px;border-top:1px solid #2A2A2A;display:flex;justify-content:flex-end;gap:10px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .form-field{display:flex;flex-direction:column;gap:5px}
 .form-field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted)}
-.form-field input,.form-field select{padding:8px 11px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-family:'Barlow',sans-serif;font-size:13px}
+.form-field input,.form-field select{padding:8px 11px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-family:'Inter',sans-serif;font-size:13px}
 .form-field input:focus,.form-field select:focus{outline:none;border-color:#FF6B35}
 .toast-container{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
-.toast{background:#1D2D4E;color:#E8E6DE;border:1px solid #2A3F65;padding:11px 16px;border-radius:8px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideIn 0.2s;border-left:3px solid var(--light);min-width:200px}
+.toast{background:#1A1A1A;color:#F0F0F0;border:1px solid #2A2A2A;padding:11px 16px;border-radius:8px;font-size:13px;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideIn 0.2s;border-left:3px solid var(--light);min-width:200px}
 @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
 .fc-click{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
-.fc-popup{position:fixed;background:#1D2D4E;border:1px solid #2A3F65;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:14px 16px;z-index:200;min-width:210px;max-width:340px;font-size:12px;line-height:1.7}
+.fc-popup{position:fixed;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.18);padding:14px 16px;z-index:200;min-width:210px;max-width:340px;font-size:12px;line-height:1.7}
 .fc-popup-title{font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);margin-bottom:6px;border-bottom:1px solid var(--sand);padding-bottom:5px}
 .fc-popup-row{display:flex;justify-content:space-between;gap:12px}.fc-popup-row span:last-child{font-weight:600;white-space:nowrap}
 .gantt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:8px}
@@ -680,7 +680,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
 .gantt-legend-item{display:flex;align-items:center;gap:6px}
 .gantt-legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .share-link-box{display:flex;align-items:center;gap:8px;margin-top:12px}
-.share-link-box input{flex:1;padding:8px 12px;border:1px solid #2A3F65;border-radius:2px;font-family:'Barlow',sans-serif;font-size:13px;background:#152238;color:#E8E6DE}
+.share-link-box input{flex:1;padding:8px 12px;border:1px solid #2A2A2A;border-radius:2px;font-family:'Inter',sans-serif;font-size:13px;background:#141414;color:#F0F0F0}
 .share-link-box button{white-space:nowrap}
 @media(max-width:768px){.gantt-label{width:120px;font-size:11px;padding:6px 8px}.gantt-bar{font-size:9px;height:18px}}
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px;touch-action:manipulation}
@@ -958,7 +958,7 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
         </select>
       </div>
       <div style="background:var(--dark);border-radius:8px;padding:14px;font-size:13px" id="job-preview">Enter details above.</div>
-      <div style="margin-top:14px;border-top:1px solid #2A3F65;padding-top:14px">
+      <div style="margin-top:14px;border-top:1px solid #2A2A2A;padding-top:14px">
         <button type="button" class="btn btn-outline" onclick="toggleCostEstimator()" id="cost-estimator-toggle" style="width:100%;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:12px;text-transform:uppercase;letter-spacing:0.06em">+ Build Cost Estimate</button>
         <div id="cost-estimator-panel" style="display:none;margin-top:14px">
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -968,14 +968,14 @@ tr:hover td{background:#243656}tr:last-child td{border-bottom:none}
             <button type="button" class="btn btn-outline" onclick="addCostLine('overhead')" style="font-size:11px">+ Overhead</button>
           </div>
           <div id="cost-lines-container"><div style="text-align:center;padding:16px;color:var(--muted);font-size:12px">No cost items added yet.</div></div>
-          <div id="cost-totals" style="display:none;background:#152238;border-radius:2px;padding:12px;margin-top:8px;font-size:12px">
+          <div id="cost-totals" style="display:none;background:#141414;border-radius:2px;padding:12px;margin-top:8px;font-size:12px">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
               <span style="color:var(--muted)">Materials:</span><span id="ct-materials">$0</span>
               <span style="color:var(--muted)">Labour:</span><span id="ct-labour">$0</span>
               <span style="color:var(--muted)">Plant:</span><span id="ct-plant">$0</span>
               <span style="color:var(--muted)">Overhead:</span><span id="ct-overhead">$0</span>
-              <span style="font-weight:700;border-top:1px solid #2A3F65;padding-top:4px">TOTAL:</span>
-              <span id="ct-total" style="font-weight:700;color:var(--accent);border-top:1px solid #2A3F65;padding-top:4px">$0</span>
+              <span style="font-weight:700;border-top:1px solid #2A2A2A;padding-top:4px">TOTAL:</span>
+              <span id="ct-total" style="font-weight:700;color:var(--accent);border-top:1px solid #2A2A2A;padding-top:4px">$0</span>
             </div>
             <button type="button" class="btn btn-primary" onclick="useCostTotal()" style="width:100%;margin-top:10px;font-size:12px">Use as Direct Costs</button>
           </div>
@@ -1445,17 +1445,17 @@ function renderPayrollUpcoming() {
   }
 
   el.innerHTML = \`
-    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
+    <div style="background:#1A1A1A;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Wages</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px">\${fc(avg.net)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate}</div>
     </div>
-    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
+    <div style="background:#1A1A1A;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next Super</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;color:var(--amber)">\${fc(avg.super)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextWageDate} (with wages)</div>
     </div>
-    <div style="background:#1D2D4E;border-radius:8px;padding:14px">
+    <div style="background:#1A1A1A;border-radius:8px;padding:14px">
       <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Next PAYG W/H</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;color:var(--orange)">\${fc(paygAmt)}</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">Due: \${nextPaygDate} (\${paygFreq})</div>
@@ -1695,7 +1695,7 @@ function renderGantt(){
   }
   let html='<div style="display:inline-block;min-width:'+totalW+'px">';
   // Header
-  html+='<div style="display:flex;border-bottom:2px solid var(--border);background:#1D2D4E;position:sticky;top:0;z-index:2">';
+  html+='<div style="display:flex;border-bottom:2px solid var(--border);background:#1A1A1A;position:sticky;top:0;z-index:2">';
   html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:10px 12px;font-size:12px;font-weight:700;color:var(--muted);border-right:1px solid var(--border)">JOB</div>';
   html+='<div style="display:flex">'+monthsHtml+'</div></div>';
   // Body
@@ -1986,7 +1986,7 @@ function renderCostLines(){
   const mr=rates.filter(r=>!['Plant','Labour','Overhead'].includes(r.category));
   const pr=rates.filter(r=>r.category==='Plant');
   const or=rates.filter(r=>r.category==='Overhead');
-  let html='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#152238"><th style="padding:6px 8px;text-align:left;font-size:10px">Type</th><th style="padding:6px 8px;text-align:left;font-size:10px">Item</th><th style="padding:6px 8px;text-align:right;font-size:10px">Qty</th><th style="padding:6px 8px;font-size:10px">Unit</th><th style="padding:6px 8px;text-align:right;font-size:10px">Rate</th><th style="padding:6px 8px;text-align:right;font-size:10px">Total</th><th style="padding:6px 8px"></th></tr></thead><tbody>';
+  let html='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#141414"><th style="padding:6px 8px;text-align:left;font-size:10px">Type</th><th style="padding:6px 8px;text-align:left;font-size:10px">Item</th><th style="padding:6px 8px;text-align:right;font-size:10px">Qty</th><th style="padding:6px 8px;font-size:10px">Unit</th><th style="padding:6px 8px;text-align:right;font-size:10px">Rate</th><th style="padding:6px 8px;text-align:right;font-size:10px">Total</th><th style="padding:6px 8px"></th></tr></thead><tbody>';
   costLines.forEach(function(line){
     let row='';
     const rmBtn='<td><button onclick="removeCostLine('+line.id+')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px">\u00d7</button></td>';
@@ -1995,38 +1995,38 @@ function renderCostLines(){
       const rObj=mr.find(r=>r.id===line.rateId)||{};
       const qu=rObj.areaConversion?'m\u00b2':(rObj.unit||line.quantityUnit||'');
       row='<td><span style="font-size:10px;background:rgba(46,196,182,0.1);color:#2EC4B6;padding:2px 6px;border-radius:3px">MAT</span></td>'
-        +'<td><select onchange="onMaterialSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="0" step="0.01" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td><select onchange="onMaterialSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="0" step="0.01" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">'+qu+'</td>'
         +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='labour'){
       row='<td><span style="font-size:10px;background:rgba(244,162,97,0.1);color:#F4A261;padding:2px 6px;border-radius:3px">LAB</span></td>'
-        +'<td><input type="text" value="'+line.name+'" placeholder="Labour" onchange="onLabourNameChange('+line.id+',this.value)" style="padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px"></td>'
-        +'<td style="text-align:right;white-space:nowrap"><input type="number" value="'+line.crewSize+'" min="1" title="Crew" onchange="onLabourChange('+line.id+','+\'crew\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px">x<input type="number" value="'+line.days+'" min="1" title="Days" onchange="onLabourChange('+line.id+','+\'days\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px"></td>'
+        +'<td><input type="text" value="'+line.name+'" placeholder="Labour" onchange="onLabourNameChange('+line.id+',this.value)" style="padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;max-width:120px"></td>'
+        +'<td style="text-align:right;white-space:nowrap"><input type="number" value="'+line.crewSize+'" min="1" title="Crew" onchange="onLabourChange('+line.id+','+\'crew\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px">x<input type="number" value="'+line.days+'" min="1" title="Days" onchange="onLabourChange('+line.id+','+\'days\'+',this.value)" style="width:32px;padding:3px 4px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px"></td>'
         +'<td style="font-size:11px">d</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.dailyRate+'" onchange="onLabourChange('+line.id+','+\'rate\'+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.dailyRate+'" onchange="onLabourChange('+line.id+','+\'rate\'+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;text-align:right"></td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='plant'){
       const so=pr.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
       row='<td><span style="font-size:10px;background:rgba(99,102,241,0.1);color:#6366F1;padding:2px 6px;border-radius:3px">PLT</span></td>'
-        +'<td><select onchange="onPlantSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:150px">'+so+'</select></td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.days+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td><select onchange="onPlantSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;max-width:150px">'+so+'</select></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.days+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">days</td>'
         +'<td style="text-align:right">'+fc(line.unitRate)+'</td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     } else if(line.type==='overhead'){
       const so='<option value="">Manual</option>'+or.map(r=>'<option value="'+r.id+'"'+(r.id===line.rateId?' selected':'')+'>'+r.name+'</option>').join('');
       row='<td><span style="font-size:10px;background:rgba(230,57,70,0.1);color:#E63946;padding:2px 6px;border-radius:3px">OVH</span></td>'
-        +'<td><select onchange="onOverheadSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">'+so+'</select>'
-        +(line.rateId?'':'<input type="text" value="'+line.name+'" placeholder="Description" onchange="onOverheadNameChange('+line.id+',this.value)" style="margin-top:3px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;max-width:120px">')
+        +'<td><select onchange="onOverheadSelect('+line.id+',this.value)" style="padding:3px 6px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;max-width:120px">'+so+'</select>'
+        +(line.rateId?'':'<input type="text" value="'+line.name+'" placeholder="Description" onchange="onOverheadNameChange('+line.id+',this.value)" style="margin-top:3px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;max-width:120px">')
         +'</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.quantity+'" min="1" onchange="onCostQtyChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;text-align:right"></td>'
         +'<td style="font-size:11px">each</td>'
-        +'<td style="text-align:right"><input type="number" value="'+line.unitRate+'" onchange="onOverheadRateChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A3F65;border-radius:2px;background:#152238;color:#E8E6DE;font-size:11px;text-align:right"></td>'
+        +'<td style="text-align:right"><input type="number" value="'+line.unitRate+'" onchange="onOverheadRateChange('+line.id+',this.value)" style="width:65px;padding:3px 5px;border:1px solid #2A2A2A;border-radius:2px;background:#141414;color:#F0F0F0;font-size:11px;text-align:right"></td>'
         +'<td style="text-align:right;font-weight:700;color:var(--accent)">'+fc(line.lineTotal)+'</td>';
     }
-    html+='<tr style="border-bottom:1px solid #2A3F65">'+row+rmBtn+'</tr>';
+    html+='<tr style="border-bottom:1px solid #2A2A2A">'+row+rmBtn+'</tr>';
   });
   html+='</tbody></table>';
   c.innerHTML=html;
