@@ -1088,15 +1088,27 @@ async function api(url) {
 function demoData(url) {
   if(url==='/api/demo-debits') {
     const now = new Date();
-    const nd = (daysOffset) => { const d = new Date(now); d.setDate(d.getDate()+daysOffset); return d.toISOString().substring(0,10); };
+    const y = now.getFullYear(), m = now.getMonth();
+    const nd = (day) => { const d = new Date(y, m, day); if (d < now) d.setMonth(d.getMonth()+1); return d.toISOString().substring(0,10); };
     return [
-      {id:1,name:'Toyota Hilux Finance',amount:1850,frequency:'Monthly',category:'Equipment Finance',reference:'LOAN-TH2024',nextDate:nd(12),endDate:'2028-12-15'},
-      {id:2,name:'Isuzu Tipper Lease',amount:2400,frequency:'Monthly',category:'Vehicle Finance',reference:'LEASE-IT001',nextDate:nd(5),endDate:'2027-06-30'},
-      {id:3,name:'RACV Fleet Insurance',amount:890,frequency:'Monthly',category:'Insurance',reference:'POL-FL9982',nextDate:nd(18),endDate:''},
-      {id:4,name:'Telstra Business',amount:320,frequency:'Monthly',category:'Subscription',reference:'ACC-8834721',nextDate:nd(8),endDate:''},
-      {id:5,name:'ATO Payment Plan',amount:5000,frequency:'Monthly',category:'ATO Payment Plan',reference:'PRN-44829103',nextDate:nd(3),endDate:'2026-09-30'},
-      {id:6,name:'Verizon Connect GPS',amount:180,frequency:'Monthly',category:'Subscription',reference:'VC-AU-2291',nextDate:nd(22),endDate:''},
-      {id:7,name:'Site Shed Rent',amount:650,frequency:'Monthly',category:'Rent/Lease',reference:'SHED-LOT14',nextDate:nd(1),endDate:''}
+      {id:1,name:'Brandad Finance',amount:582.19,frequency:'Weekly',category:'Equipment Finance',reference:'',nextDate:nd(now.getDate()+((5-now.getDay()+7)%7)),endDate:''},
+      {id:2,name:'Resimac',amount:2105.31,frequency:'Monthly',category:'Vehicle Finance',reference:'',nextDate:nd(2),endDate:''},
+      {id:3,name:'Angel Finance',amount:3843.97,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(2),endDate:''},
+      {id:4,name:'Elantis (1st Mon)',amount:2505.60,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(1),endDate:''},
+      {id:5,name:'Metro Finance',amount:2126.21,frequency:'Monthly',category:'Vehicle Finance',reference:'',nextDate:nd(6),endDate:''},
+      {id:6,name:'BZ Individual Tax',amount:660,frequency:'Monthly',category:'ATO Payment Plan',reference:'',nextDate:nd(6),endDate:''},
+      {id:7,name:'BZ Activity Statement',amount:742,frequency:'Monthly',category:'ATO Payment Plan',reference:'',nextDate:nd(6),endDate:''},
+      {id:8,name:'MD ATO Payment',amount:1000,frequency:'Monthly',category:'ATO Payment Plan',reference:'',nextDate:nd(6),endDate:''},
+      {id:9,name:'BOQ Finance',amount:1702.59,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(9),endDate:''},
+      {id:10,name:'MZ Individual Tax',amount:600,frequency:'Monthly',category:'ATO Payment Plan',reference:'',nextDate:nd(18),endDate:''},
+      {id:11,name:'MZ Activity Statement',amount:400,frequency:'Monthly',category:'ATO Payment Plan',reference:'',nextDate:nd(18),endDate:''},
+      {id:12,name:'Elantis (19th)',amount:950.04,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(19),endDate:''},
+      {id:13,name:'Elantis (20th)',amount:4512.03,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(20),endDate:''},
+      {id:14,name:'Pepper Money',amount:1552.10,frequency:'Monthly',category:'Vehicle Finance',reference:'',nextDate:nd(22),endDate:''},
+      {id:15,name:'Volkswagen Finance',amount:1856.36,frequency:'Monthly',category:'Vehicle Finance',reference:'',nextDate:nd(23),endDate:''},
+      {id:16,name:'NAB Loan',amount:3200,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(28),endDate:''},
+      {id:17,name:'Suncorp Insurance',amount:298.25,frequency:'Monthly',category:'Insurance',reference:'',nextDate:nd(30),endDate:''},
+      {id:18,name:'De Lage Landen',amount:1549.68,frequency:'Monthly',category:'Equipment Finance',reference:'',nextDate:nd(30),endDate:''}
     ];
   }
   if(url==='/api/ato') return {quarters:[
@@ -1105,9 +1117,30 @@ function demoData(url) {
     {q:'Q3',fy:'2025-2026',start:'2026-01-01',end:'2026-03-31',dueAgent:'2026-05-23',dueNonAgent:'2026-04-28',gstCollected:19800.00,gstPaid:7100.00,netGST:12700.00,invoiceCount:10,billCount:9},
     {q:'Q4',fy:'2025-2026',start:'2026-04-01',end:'2026-06-30',dueAgent:'2026-07-28',dueNonAgent:'2026-07-28',gstCollected:5200.00,gstPaid:2100.00,netGST:3100.00,invoiceCount:4,billCount:3}
   ]};
-  if(url==='/api/summary') return {tenantName:'Creted Civil Pty Ltd (Demo)',totalReceivables:231111.01,totalPayables:46227.17,netPosition:184883.84,
-    invoices:[{client:'Metro Asphalt Pty Ltd',ref:'INV#20261085',amount:171833.75,due:'2026-04-28',status:'AUTHORISED'},{client:'Novacon Group',ref:'INV#20261084',amount:59277.26,due:'2026-04-23',status:'AUTHORISED'}],
-    bills:[{supplier:'Holcim Australia Pty Ltd',amount:10446.48,due:'2026-01-30',status:'OVERDUE'},{supplier:'Mesh & Bar Pty Ltd',amount:21801.97,due:'2026-04-15',status:'AUTHORISED'},{supplier:'Campbellfield Concrete',amount:13979.72,due:'2026-04-20',status:'AUTHORISED'}]};
+  if(url==='/api/summary') return {tenantName:'Creted Civil Pty Ltd (Demo)',totalReceivables:453338.44,totalPayables:89650.00,netPosition:363688.44,
+    invoices:[
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260025',amount:160671.94,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Novacon Group',ref:'INV20260021',amount:105310.59,due:'2026-06-11',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260019',amount:51342.06,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260024',amount:42522.71,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260023',amount:35480.74,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260018',amount:22840.83,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260012',amount:12417.02,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260015',amount:8782.38,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260009',amount:5610.00,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260016',amount:4447.25,due:'2026-06-30',status:'AUTHORISED'},
+      {client:'Metro Asphalt Pty Ltd',ref:'INV20260017',amount:3912.92,due:'2026-06-30',status:'AUTHORISED'}
+    ],
+    bills:[
+      {supplier:'Campbellfield Concrete',amount:29615.52,due:'2026-07-31',status:'AUTHORISED'},
+      {supplier:'Alex Fraser (Recycling)',amount:8450.00,due:'2026-06-30',status:'AUTHORISED'},
+      {supplier:'Mesh & Bar Pty Ltd',amount:12800.00,due:'2026-06-30',status:'AUTHORISED'},
+      {supplier:'Cedz Concrete Pumping',amount:2780.36,due:'2026-06-19',status:'AUTHORISED'},
+      {supplier:'Cash Factor — Monthly Fees',amount:6011.76,due:'2026-06-30',status:'AUTHORISED'},
+      {supplier:'Motorpass Fuel',amount:8200.00,due:'2026-06-30',status:'AUTHORISED'},
+      {supplier:'WorkCover Insurance',amount:3350.00,due:'2026-07-15',status:'AUTHORISED'},
+      {supplier:'Wages + Super (weekly)',amount:18442.36,due:'2026-06-20',status:'AUTHORISED'}
+    ]};
   if(url==='/api/payroll') {
     const demoPayRuns = [];
     const baseDate = new Date(); baseDate.setDate(baseDate.getDate() - baseDate.getDay() + 1);
