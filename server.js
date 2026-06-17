@@ -472,7 +472,7 @@ function buildScheduleHTML(token) {
 .gantt-label{width:160px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--border)}
 .gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
-.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px;cursor:pointer;transition:opacity 0.15s}.gantt-bar:hover{opacity:0.85}
 .gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3}
 .gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase}
 .gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--border);opacity:0.5}
@@ -512,8 +512,20 @@ function renderSharedGantt(jobs){
   const trackW=totalDays*dayW;
   const labelW=160;
   let html='<div class="gantt-header"><div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:11px;font-weight:700;color:var(--muted)">JOB</div><div style="display:flex;width:'+trackW+'px">';
-  let m=new Date(viewStart);
-  while(m<=viewEnd){const daysInMonth=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();const monthStart=new Date(m.getFullYear(),m.getMonth(),1);const mDays=Math.min(daysInMonth,Math.ceil((viewEnd-monthStart)/86400000));html+='<div class="gantt-month" style="width:'+(mDays*dayW)+'px">'+m.toLocaleDateString('en-AU',{month:'short',year:'2-digit'})+'</div>';m=new Date(m.getFullYear(),m.getMonth()+1,1);}
+  // Weekly headers
+  let wk=new Date(viewStart);
+  // Align to Monday
+  while(wk.getDay()!==1) wk=new Date(wk.getTime()-86400000);
+  while(wk<=viewEnd){
+    const wkEnd=new Date(wk.getTime()+4*86400000); // Friday
+    const wkDays=7;
+    const wkW=wkDays*dayW;
+    const d1=wk.getDate(),m1=wk.getMonth()+1;
+    const d2=wkEnd.getDate(),m2=wkEnd.getMonth()+1;
+    const label=d1+'/'+m1+' - '+d2+'/'+m2;
+    html+='<div class="gantt-month" style="width:'+wkW+'px;font-size:10px">'+label+'</div>';
+    wk=new Date(wk.getTime()+7*86400000);
+  }
   html+='</div></div><div class="gantt-body" style="position:relative">';
   const today=new Date();const todayOff=Math.ceil((today-viewStart)/86400000);
   if(todayOff>=0&&todayOff<=totalDays){html+='<div class="gantt-today" style="left:'+(labelW+todayOff*dayW)+'px"></div>';}
@@ -522,7 +534,10 @@ function renderSharedGantt(jobs){
     const offStart=Math.max(0,Math.ceil((s-viewStart)/86400000));
     const offEnd=Math.ceil((e-viewStart)/86400000);
     const barL=offStart*dayW;const barW=Math.max(dayW,(offEnd-offStart)*dayW);
-    html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"><div class="gantt-bar" style="left:'+barL+'px;width:'+barW+'px;background:'+COLORS[i%COLORS.length]+'">'+j.name+'</div></div></div>';
+    const fmtD=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    const durDays=Math.ceil((e-s)/86400000);
+    const tooltip=fmtD(s)+' \u2192 '+fmtD(e)+' ('+durDays+' days)';
+    html+='<div class="gantt-row"><div class="gantt-label">'+j.name+(j.client?'<small>'+j.client+'</small>':'')+'</div><div class="gantt-track" style="width:'+trackW+'px"><div class="gantt-bar" style="left:'+barL+'px;width:'+barW+'px;background:'+COLORS[i%COLORS.length]+';cursor:pointer" title="'+tooltip+'" onclick="alert(\''+j.name+'\\n'+tooltip+'\')">'+j.name+'</div></div></div>';
   });
   html+='</div>';
   document.getElementById('gantt-chart').innerHTML=html;
@@ -1640,7 +1655,7 @@ function renderJobs() {
     <td style="font-size:12px">\${j.paymentDate||'—'}</td>
     <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' (long gap)':''):'—'}</td>
     <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
-    <td><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
+    <td style="white-space:nowrap"><button class="btn btn-outline" onclick="editJob(\${i})" style="font-size:11px;padding:4px 8px;margin-right:4px">Edit</button><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
     </tbody></table></div></div>\`;
 }
 
@@ -1681,6 +1696,57 @@ function saveJob() {
   D.jobs.push(j);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));
   generateAssumptions(j);
   closeModal('job-modal');renderJobs();renderGantt();buildForecast();toast('Job added ✓');
+}
+
+function editJob(i) {
+  const j = D.jobs[i];
+  if (!j) return;
+  document.getElementById('job-name').value = j.name || '';
+  document.getElementById('job-client').value = j.client || '';
+  document.getElementById('job-start').value = j.startDate || '';
+  document.getElementById('job-end').value = j.endDate || '';
+  document.getElementById('job-rev').value = j.revenue || '';
+  document.getElementById('job-costs').value = j.costs || '';
+  document.getElementById('job-terms').value = j.terms || '30eom';
+  costLines = j.costBreakdown || [];
+  // Store edit index
+  window._editJobIndex = i;
+  document.querySelector('#job-modal .modal-title').textContent = 'Edit Job';
+  document.querySelector('#job-modal .modal-footer .btn-primary').textContent = 'Save Changes';
+  document.querySelector('#job-modal .modal-footer .btn-primary').onclick = function() { saveJobEdit(i); };
+  previewJob();
+  openModal('job-modal');
+}
+
+function saveJobEdit(i) {
+  const terms = document.getElementById('job-terms').value, endDate = document.getElementById('job-end').value;
+  let paymentDate = '';
+  if (endDate) {
+    const end = new Date(endDate);
+    if (terms === '30eom') { const p = new Date(end.getFullYear(), end.getMonth()+2, 0); paymentDate = p.toISOString().substring(0,10); }
+    else if (terms === '14') { const p = new Date(end); p.setDate(p.getDate()+15); paymentDate = p.toISOString().substring(0,10); }
+    else if (terms === '30') { const p = new Date(end); p.setDate(p.getDate()+31); paymentDate = p.toISOString().substring(0,10); }
+  }
+  D.jobs[i] = {
+    ...D.jobs[i],
+    name: document.getElementById('job-name').value,
+    client: document.getElementById('job-client').value,
+    startDate: document.getElementById('job-start').value,
+    endDate,
+    revenue: document.getElementById('job-rev').value,
+    costs: document.getElementById('job-costs').value,
+    terms, paymentDate,
+    costBreakdown: [...costLines]
+  };
+  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
+  closeModal('job-modal');
+  // Reset modal for next add
+  document.querySelector('#job-modal .modal-title').textContent = 'Add Job to Pipeline';
+  document.querySelector('#job-modal .modal-footer .btn-primary').textContent = 'Add to Pipeline';
+  document.querySelector('#job-modal .modal-footer .btn-primary').onclick = saveJob;
+  window._editJobIndex = null;
+  renderJobs(); renderGantt(); buildForecast();
+  toast('Job updated ✓');
 }
 
 function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));renderJobs();renderGantt();toast('Removed');}
