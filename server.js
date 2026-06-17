@@ -1803,15 +1803,19 @@ function renderGantt(){
   const trackW=totalDays*dayW;
   const labelW=isMobile?110:180;
   const totalW=labelW+trackW;
-  // Month headers
+  // Weekly headers
   let monthsHtml='';
-  let mc=new Date(viewStart);
-  while(mc<=viewEnd){
-    const mEnd=new Date(mc.getFullYear(),mc.getMonth()+1,0);
-    const clipEnd=mEnd>viewEnd?viewEnd:mEnd;
-    const mDays=Math.ceil((clipEnd-mc)/86400000)+1;
-    monthsHtml+='<div style="width:'+(mDays*dayW)+'px;text-align:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);padding:10px 0;border-right:1px solid var(--border);flex-shrink:0">'+mc.toLocaleDateString('en-AU',{month:'short',year:'numeric'})+'</div>';
-    mc=new Date(mc.getFullYear(),mc.getMonth()+1,1);
+  let wkStart=new Date(viewStart);
+  // Align to Monday
+  while(wkStart.getDay()!==1) wkStart=new Date(wkStart.getTime()-86400000);
+  while(wkStart<=viewEnd){
+    const wkEnd=new Date(wkStart.getTime()+4*86400000); // Friday
+    const d1=wkStart.getDate(),m1=wkStart.getMonth()+1;
+    const d2=wkEnd.getDate(),m2=wkEnd.getMonth()+1;
+    const label=d1+'/'+m1+' - '+d2+'/'+m2;
+    const wkW=7*dayW;
+    monthsHtml+='<div style="width:'+wkW+'px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);padding:10px 0;border-right:1px solid var(--border);flex-shrink:0">'+label+'</div>';
+    wkStart=new Date(wkStart.getTime()+7*86400000);
   }
   let html='<div style="display:inline-block;min-width:'+totalW+'px">';
   // Header
