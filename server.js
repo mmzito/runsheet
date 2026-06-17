@@ -611,7 +611,7 @@ function buildAppHTML(orgName, isDemo, isMultiTenant) {
 .layout{display:flex;min-height:calc(100vh - 58px)}
 .sidebar{width:210px;flex-shrink:0;background:#141414;border-right:1px solid #2A2A2A;padding:16px 0;position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto}
 .sidebar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.14em;color:#555555;padding:0 16px;margin:16px 0 6px;font-family:'Barlow Condensed',sans-serif}
-.nav-btn{display:flex;align-items:center;gap:10px;padding:9px 16px;width:100%;background:transparent;border:none;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:#888888;cursor:pointer;transition:all 0.15s;text-align:left;text-transform:uppercase;letter-spacing:0.06em}
+.nav-btn{display:flex;align-items:center;gap:10px;padding:12px 16px;width:100%;background:transparent;border:none;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:#888888;cursor:pointer;transition:all 0.15s;text-align:left;text-transform:uppercase;letter-spacing:0.06em;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .nav-btn:hover{background:rgba(255,107,53,0.05);color:#F0F0F0}.nav-btn.active{background:rgba(255,107,53,0.08);color:#FF6B35;font-weight:700;border-left:3px solid #FF6B35}
 .balance-box{margin:12px;padding:14px;background:#1A1A1A;border:1px solid #2A2A2A;border-radius:var(--r);color:#F0F0F0}
 .balance-lbl{font-size:10px;color:#555555;text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;font-family:'Barlow Condensed',sans-serif}
@@ -1072,8 +1072,8 @@ function nav(id) {
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById('section-'+id).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes("'"+id+"'"))b.classList.add('active')});
-  // Close mobile sidebar after navigation
-  if(window.innerWidth<=768){document.querySelector('.sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');}
+  // Close mobile sidebar after navigation (slight delay to let click register)
+  if(window.innerWidth<=768){setTimeout(function(){document.querySelector('.sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');},150);}
   if(id==='invoices')loadInvoices();
   else if(id==='bills')loadBills();
   else if(id==='payroll')loadPayroll();
