@@ -1608,7 +1608,28 @@ function getATOBASOutflows() {
   }).filter(o => o.amount !== 0);
 }
 
+function loadDemoJobs() {
+  if (!IS_DEMO || D.jobs.length > 0) return;
+  D.jobs = [
+    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j4',name:'Miller St Epping',client:'Little Rock',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j6',name:'Vincent Dr South Morang',client:'Metro (Cole Civil)',startDate:'2026-06-23',endDate:'2026-06-27',revenue:17910,costs:10451,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j7',name:'Boyd Pl Mill Park',client:'Metro (Cole Civil)',startDate:'2026-06-16',endDate:'2026-06-20',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j8',name:'Civic Pde Altona',client:'Novacon',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j9',name:'Oakdale Pl Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-07',endDate:'2026-07-18',revenue:28298,costs:23748,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j10',name:'Middle Crt Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-14',endDate:'2026-07-18',revenue:15015,costs:12119,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j11',name:'Scullin & Evatt Crt Mill Park',client:'Metro (Cole Civil)',startDate:'2026-07-21',endDate:'2026-07-25',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j12',name:'Downey Dr Doreen',client:'Metro (Cole Civil)',startDate:'2026-07-28',endDate:'2026-08-08',revenue:31198,costs:29407,terms:'30eom',paymentDate:'2026-09-30'},
+    {id:'j13',name:'St Catherines Toorak',client:'Pana Group',startDate:'2026-07-14',endDate:'2026-07-25',revenue:53233,costs:38286,terms:'30eom',paymentDate:'2026-08-31'}
+  ];
+  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
+}
+
 function renderJobs() {
+  if (D.jobs.length === 0 && IS_DEMO) loadDemoJobs();
   const el=document.getElementById('jobs-content');
   if(D.jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">No jobs yet. Add upcoming jobs to see payment timing in the forecast.</div>';return;}
   el.innerHTML=\`<div class="card"><div class="card-hdr"><span class="card-title">Job Pipeline</span></div><div class="tbl-wrap"><table>
@@ -1788,6 +1809,14 @@ function toast(msg){const tc=document.getElementById('toasts'),t=document.create
 // ── DIRECT DEBITS ──────────────────────────────────────────────────────────
 function loadDebits() {
   D.debits = JSON.parse(localStorage.getItem('hs_debits')||'[]');
+  // Auto-load demo debits if empty and in demo mode
+  if (D.debits.length === 0 && IS_DEMO) {
+    const demoDebits = demoData('/api/demo-debits');
+    if (Array.isArray(demoDebits) && demoDebits.length > 0) {
+      D.debits = demoDebits;
+      localStorage.setItem('hs_debits', JSON.stringify(D.debits));
+    }
+  }
   renderDebits();
 }
 
