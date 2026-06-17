@@ -1067,16 +1067,33 @@ function toggleSidebar() {
   document.getElementById('sidebar-overlay').classList.toggle('open');
 }
 
+// Mobile touch fix: handle nav button taps via touchend
+document.addEventListener('touchend', function(e) {
+  const btn = e.target.closest('.nav-btn');
+  if (btn && btn.getAttribute('onclick')) {
+    e.preventDefault();
+    e.stopPropagation();
+    const match = btn.getAttribute('onclick').match(/nav\('([^']+)'\)/);
+    if (match) nav(match[1]);
+  }
+}, {passive: false});
+
 function nav(id) {
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  // Switch section FIRST
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   const section = document.getElementById('section-'+id);
   if(section) section.classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes("'"+id+"'"))b.classList.add('active')});
-  // Close mobile sidebar after navigation
+  // Update active nav button
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.remove('active');
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf("'"+id+"'")>=0) b.classList.add('active');
+  });
+  // Close mobile sidebar AFTER a short delay
   if(window.innerWidth<=768){
-    document.querySelector('.sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('open');
+    setTimeout(function(){
+      document.querySelector('.sidebar').classList.remove('open');
+      document.getElementById('sidebar-overlay').classList.remove('open');
+    }, 200);
   }
   if(id==='invoices')loadInvoices();
   else if(id==='bills')loadBills();
