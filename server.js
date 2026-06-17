@@ -964,6 +964,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       <div class="form-row"><div class="form-field"><label>Job Name</label><input type="text" id="job-name"></div><div class="form-field"><label>Client / Council</label><input type="text" id="job-client"></div></div>
       <div class="form-row"><div class="form-field"><label>Work Start</label><input type="date" id="job-start"></div><div class="form-field"><label>Work End</label><input type="date" id="job-end"></div></div>
       <div class="form-row"><div class="form-field"><label>Revenue (ex-GST) $</label><input type="number" id="job-rev" oninput="previewJob()"></div><div class="form-field"><label>Direct Costs (ex-GST) $</label><input type="number" id="job-costs" oninput="previewJob()"></div></div>
+      <div class="form-row"><div class="form-field"><label>Job Status</label><select id="job-status"><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option><option value="Invoiced">Invoiced</option></select></div><div class="form-field"><label>Xero Invoice Ref (if invoiced)</label><input type="text" id="job-invoice-ref" placeholder="e.g. INV20260025"></div></div>
       <div class="form-field" style="margin-bottom:14px"><label>Payment Terms</label>
         <select id="job-terms" onchange="previewJob()">
           <option value="30eom">30 Days End of Month</option>
@@ -1316,7 +1317,7 @@ async function buildForecast() {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
     const we=new Date(ws); we.setDate(ws.getDate()+6);
     const inflows = D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
-      + D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
+      + D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
     const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
     
@@ -1353,7 +1354,7 @@ async function buildForecast() {
     // Build itemized breakdowns for click popups
     const inBreakdown = [];
     D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0) inBreakdown.push({lbl:i.client||i.ref||'Invoice',amt:fc(i.amount)}); });
-    D.jobs.filter(j=>j.paymentDate&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job',amt:fc(r)}); });
+    D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job (est.)',amt:fc(r)}); });
     const outBreakdown = [];
     if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
     if (paygOut > 0) outBreakdown.push({lbl:'PAYG W/H',amt:fc(paygOut)});
@@ -1647,11 +1648,11 @@ function getATOBASOutflows() {
 function loadDemoJobs() {
   if (!IS_DEMO || D.jobs.length > 0) return;
   D.jobs = [
-    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31',status:'In Progress'},
     {id:'j4',name:'Miller St Epping',client:'Little Rock',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
-    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
     {id:'j6',name:'Vincent Dr South Morang',client:'Metro (Cole Civil)',startDate:'2026-06-23',endDate:'2026-06-27',revenue:17910,costs:10451,terms:'30eom',paymentDate:'2026-07-31'},
     {id:'j7',name:'Boyd Pl Mill Park',client:'Metro (Cole Civil)',startDate:'2026-06-16',endDate:'2026-06-20',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-07-31'},
     {id:'j8',name:'Civic Pde Altona',client:'Novacon',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
@@ -1669,7 +1670,7 @@ function renderJobs() {
   const el=document.getElementById('jobs-content');
   if(D.jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">No jobs yet. Add upcoming jobs to see payment timing in the forecast.</div>';return;}
   el.innerHTML=\`<div class="card"><div class="card-hdr"><span class="card-title">Job Pipeline</span></div><div class="tbl-wrap"><table>
-    <thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Payment Date</th><th>Cash Gap</th><th>Status</th><th></th></tr></thead>
+    <thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Payment Date</th><th>Status</th><th></th></tr></thead>
     <tbody>\${D.jobs.map((j,i)=>{const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
     <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
@@ -1712,7 +1713,9 @@ function saveJob() {
   }
   const j={id:'j'+Date.now(),name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
-    costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines]};
+    costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines],
+    status:document.getElementById('job-status').value||'Scheduled',
+    invoiceRef:document.getElementById('job-invoice-ref').value||''};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
   D.jobs.push(j);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));
   generateAssumptions(j);
@@ -1729,6 +1732,8 @@ function editJob(i) {
   document.getElementById('job-rev').value = j.revenue || '';
   document.getElementById('job-costs').value = j.costs || '';
   document.getElementById('job-terms').value = j.terms || '30eom';
+  document.getElementById('job-status').value = j.status || 'Scheduled';
+  document.getElementById('job-invoice-ref').value = j.invoiceRef || '';
   costLines = j.costBreakdown || [];
   // Store edit index
   window._editJobIndex = i;
@@ -1757,7 +1762,9 @@ function saveJobEdit(i) {
     revenue: document.getElementById('job-rev').value,
     costs: document.getElementById('job-costs').value,
     terms, paymentDate,
-    costBreakdown: [...costLines]
+    costBreakdown: [...costLines],
+    status: document.getElementById('job-status').value || 'Scheduled',
+    invoiceRef: document.getElementById('job-invoice-ref').value || ''
   };
   localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
   closeModal('job-modal');
