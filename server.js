@@ -702,7 +702,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
 .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150}
 .sidebar-close{display:none;position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);touch-action:manipulation}
-@media(max-width:768px){.hamburger{display:flex}.sidebar{position:fixed;top:0;left:0;height:100vh;z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;padding-top:16px}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.sidebar-close{display:block}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}.dash-cards{grid-template-columns:1fr!important}.forecast-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td,th{padding:6px 8px!important}.btn,.btn-sm{touch-action:manipulation}}
+@media(max-width:768px){.hamburger{display:flex}.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;padding-top:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.sidebar-close{display:block}.nav-btn{padding:14px 16px;font-size:15px;cursor:pointer}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}.dash-cards{grid-template-columns:1fr!important}.forecast-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td,th{padding:6px 8px!important}.btn,.btn-sm{touch-action:manipulation}}
 @media(max-width:480px){.stats{grid-template-columns:1fr}}
 </style>
 </head>
@@ -727,7 +727,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       <div class="balance-val" id="sidebar-balance">...</div>
     </div>
     <div class="sidebar-label">Overview</div>
-    <button class="nav-btn active" onclick="nav('dashboard')">Dashboard</button>
+    <button class="nav-btn active" ontouchstart="this.clicked=true" onclick="nav('dashboard')">Dashboard</button>
     <button class="nav-btn" onclick="nav('forecast')">52-Week Forecast</button>
     <div class="sidebar-label">Money In</div>
     <button class="nav-btn" onclick="nav('invoices')">Invoices</button>
@@ -1070,10 +1070,14 @@ function toggleSidebar() {
 function nav(id) {
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.getElementById('section-'+id).classList.add('active');
+  const section = document.getElementById('section-'+id);
+  if(section) section.classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>{if(b.getAttribute('onclick')?.includes("'"+id+"'"))b.classList.add('active')});
-  // Close mobile sidebar after navigation (slight delay to let click register)
-  if(window.innerWidth<=768){setTimeout(function(){document.querySelector('.sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('open');},150);}
+  // Close mobile sidebar after navigation
+  if(window.innerWidth<=768){
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
   if(id==='invoices')loadInvoices();
   else if(id==='bills')loadBills();
   else if(id==='payroll')loadPayroll();
