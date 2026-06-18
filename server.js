@@ -740,18 +740,18 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       <div class="balance-val" id="sidebar-balance">...</div>
     </div>
     <div class="sidebar-label">Overview</div>
-    <button class="nav-btn active" ontouchstart="this.clicked=true" onclick="nav('dashboard')">Dashboard</button>
-    <button class="nav-btn" onclick="nav('forecast')">52-Week Forecast</button>
+    <a href="javascript:void(0)" class="nav-btn active" onclick="nav('dashboard');return false;" style="text-decoration:none">Dashboard</a>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('forecast');return false;" style="text-decoration:none">52-Week Forecast</a>
     <div class="sidebar-label">Money In</div>
-    <button class="nav-btn" onclick="nav('invoices')">Invoices</button>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('invoices');return false;" style="text-decoration:none">Invoices</a>
     <div class="sidebar-label">Money Out</div>
-    <button class="nav-btn" onclick="nav('bills')">Bills</button>
-    <button class="nav-btn" onclick="nav('ato')">ATO Obligations</button>
-    <button class="nav-btn" onclick="nav('debits')">Direct Debits</button>
-    <button class="nav-btn" onclick="nav('payroll')">Payroll</button>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('bills');return false;" style="text-decoration:none">Bills</a>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('ato');return false;" style="text-decoration:none">ATO Obligations</a>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('debits');return false;" style="text-decoration:none">Direct Debits</a>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('payroll');return false;" style="text-decoration:none">Payroll</a>
     <div class="sidebar-label">Planning</div>
-    <button class="nav-btn" onclick="nav('jobs')">Job Pipeline</button>
-    <button class="nav-btn" onclick="nav('rates')">Rate Library</button>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('jobs');return false;" style="text-decoration:none">Job Pipeline</a>
+    <a href="javascript:void(0)" class="nav-btn" onclick="nav('rates');return false;" style="text-decoration:none">Rate Library</a>
   </aside>
   <main class="main">
     <div class="section active" id="section-dashboard">
@@ -1092,16 +1092,7 @@ function toggleSidebar() {
   document.getElementById('sidebar-overlay').classList.toggle('open');
 }
 
-// Mobile touch fix: handle nav button taps via touchend
-document.addEventListener('touchend', function(e) {
-  const btn = e.target.closest('.nav-btn');
-  if (btn && btn.getAttribute('onclick')) {
-    e.preventDefault();
-    e.stopPropagation();
-    const match = btn.getAttribute('onclick').match(/nav\('([^']+)'\)/);
-    if (match) nav(match[1]);
-  }
-}, {passive: false});
+// Nav buttons use <a> tags for reliable mobile tapping
 
 function nav(id) {
   // Switch section FIRST
