@@ -715,7 +715,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
 .hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150}
 .sidebar-close{display:none;position:absolute;top:12px;right:12px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);touch-action:manipulation}
-@media(max-width:768px){.hamburger{display:flex}.sidebar{position:fixed;top:0;left:0;width:240px;height:100vh;z-index:200;transform:translateX(-100%);transition:transform 0.25s ease;padding-top:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}.sidebar.open{transform:translateX(0)}.sidebar-overlay.open{display:block}.sidebar-close{display:block}.nav-btn{padding:14px 16px;font-size:15px;cursor:pointer}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}.dash-cards{grid-template-columns:1fr!important}.forecast-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td,th{padding:6px 8px!important}.btn,.btn-sm{touch-action:manipulation}}
+@media(max-width:768px){.hamburger{display:flex}.sidebar{position:fixed;top:0;left:0;width:260px;height:100vh;z-index:200;display:none;padding-top:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#141414}.sidebar.open{display:block}.sidebar-overlay.open{display:block}.sidebar-close{display:block}.nav-btn{padding:16px 20px;font-size:16px;cursor:pointer;display:block;width:100%}.main{padding:16px}.stats{grid-template-columns:1fr 1fr}.dash-cards{grid-template-columns:1fr!important}.forecast-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}td,th{padding:6px 8px!important}.btn,.btn-sm{touch-action:manipulation}}
 @media(max-width:480px){.stats{grid-template-columns:1fr}}
 </style>
 </head>
@@ -1095,22 +1095,20 @@ function toggleSidebar() {
 // Nav buttons use <a> tags for reliable mobile tapping
 
 function nav(id) {
-  // Switch section FIRST
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  const section = document.getElementById('section-'+id);
+  // Close sidebar FIRST on mobile (since we use display:none now, no animation to interfere)
+  if(window.innerWidth<=768){
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+  // Switch section
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  var section = document.getElementById('section-'+id);
   if(section) section.classList.add('active');
   // Update active nav button
-  document.querySelectorAll('.nav-btn').forEach(b=>{
+  document.querySelectorAll('.nav-btn').forEach(function(b){
     b.classList.remove('active');
-    if(b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf("'"+id+"'")>=0) b.classList.add('active');
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').indexOf(id)>=0) b.classList.add('active');
   });
-  // Close mobile sidebar AFTER a short delay
-  if(window.innerWidth<=768){
-    setTimeout(function(){
-      document.querySelector('.sidebar').classList.remove('open');
-      document.getElementById('sidebar-overlay').classList.remove('open');
-    }, 200);
-  }
   if(id==='invoices')loadInvoices();
   else if(id==='bills')loadBills();
   else if(id==='payroll')loadPayroll();
