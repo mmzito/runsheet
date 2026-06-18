@@ -1316,7 +1316,7 @@ async function buildForecast() {
   for(let w=0;w<52;w++) {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
     const we=new Date(ws); we.setDate(ws.getDate()+6);
-    const inflows = D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
+    const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
       + D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
     const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
@@ -1353,7 +1353,7 @@ async function buildForecast() {
     if (paygOut > 0) tagLabels.push('PAYG W/H ' + fc(paygOut));
     // Build itemized breakdowns for click popups
     const inBreakdown = [];
-    D.invoices.filter(i=>{const d=new Date(i.due);return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0) inBreakdown.push({lbl:i.client||i.ref||'Invoice',amt:fc(i.amount)}); });
+    D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0) inBreakdown.push({lbl:i.client||i.ref||'Invoice',amt:fc(i.amount)}); });
     D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job (est.)',amt:fc(r)}); });
     const outBreakdown = [];
     if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
@@ -2093,6 +2093,36 @@ const DEFAULT_RATES = [
   {id:'dr10',name:'Bobcat Hire',category:'Plant',unit:'day',rate:550,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'},
   {id:'dr11',name:'Truck Hire',category:'Plant',unit:'day',rate:650,supplier:'',supplierTerms:'',areaConversion:false,thickness:null,notes:'',updatedAt:'2026-04-29'}
 ];
+// Client payment terms — determines when cash actually arrives in forecast
+const DEFAULT_CLIENT_TERMS = [
+  {client:'Metro Asphalt',terms:'30eom',label:'30 days EOM'},
+  {client:'Little Rock',terms:'14',label:'14 days'},
+  {client:'Novacon',terms:'30',label:'30 days'},
+  {client:'Pana',terms:'14',label:'14 days'}
+];
+function initClientTerms(){
+  const ex=localStorage.getItem('hs_client_terms');
+  if(!ex||JSON.parse(ex).length===0) localStorage.setItem('hs_client_terms',JSON.stringify(DEFAULT_CLIENT_TERMS));
+}
+initClientTerms();
+function getClientTerms(){return JSON.parse(localStorage.getItem('hs_client_terms')||'[]');}
+
+function getExpectedPaymentDate(dueDate, clientName) {
+  const terms = getClientTerms();
+  const cn = (clientName||'').toLowerCase();
+  const match = terms.find(t => cn.includes(t.client.toLowerCase()));
+  const due = new Date(dueDate);
+  if (!match) return due;
+  if (match.terms === '30eom') {
+    // 30 EOM: paid end of month after invoice month
+    // Due date from Xero is already invoice date + 30 days
+    // So due 30 June = invoiced ~1 June = paid end of July
+    return new Date(due.getFullYear(), due.getMonth() + 1 + 1, 0);
+  }
+  // For 14 and 30 day terms, Xero due date is already correct
+  return due;
+}
+
 function initRates(){const ex=localStorage.getItem('hs_rates');if(!ex||JSON.parse(ex).length===0)localStorage.setItem('hs_rates',JSON.stringify(DEFAULT_RATES));}
 initRates();
 function getRates(){return JSON.parse(localStorage.getItem('hs_rates')||'[]');}
