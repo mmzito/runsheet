@@ -1366,7 +1366,7 @@ async function buildForecast() {
   }
   const maxFlow=Math.max(...weeks.map(w=>Math.max(w.inflows,w.outflows)),1);
   document.getElementById('forecast-rows').innerHTML = weeks.map(w=>{const ib=w.inBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');const ob=w.outBD.replace(/"/g,'&quot;').replace(/'/g,'&#39;');return \`<div class="week-row \${w.isNeg?'danger-row':w.isDanger?'amber-row':''}">
-    <div class="wk-lbl">Wk \${w.w}</div><div class="wk-mo">\${w.mo}</div>
+    <div class="wk-lbl">WE \${w.we.toLocaleDateString('en-AU',{day:'2-digit',month:'2-digit'})}</div><div class="wk-mo">\${w.mo}</div>
     <div class="wk-in \${w.inflows>0?'fc-click':''}" \${w.inflows>0?'data-bd-title=Inflows data-bd=\"'+ib+'\"':''}>\${w.inflows>0?'+'+fc(w.inflows):'—'}</div>
     <div class="wk-out \${w.outflows>0?'fc-click':''}" \${w.outflows>0?'data-bd-title=Outflows data-bd=\"'+ob+'\"':''}>\${w.outflows>0?'-'+fc(w.outflows):'—'}</div>
     <div class="wk-bal \${w.isNeg?'neg':w.isDanger?'low':'ok'}">\${fc(w.balance)}</div>
