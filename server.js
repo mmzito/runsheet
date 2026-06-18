@@ -783,8 +783,8 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="card-hdr"><span class="card-title">Outstanding Invoices</span><button class="btn btn-outline" onclick="loadInvoices()">Refresh</button></div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Client</th><th>Ref</th><th>Amount Due</th><th>Due Date</th><th>Days</th><th>Status</th></tr></thead>
-          <tbody id="inv-tbody"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+          <thead><tr><th>Client</th><th>Ref</th><th>Amount Due</th><th>Due Date</th><th>Days</th><th>Status</th><th>Finance</th></tr></thead>
+          <tbody id="inv-tbody"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -1316,7 +1316,8 @@ async function buildForecast() {
   for(let w=0;w<52;w++) {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
     const we=new Date(ws); we.setDate(ws.getDate()+6);
-    const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce((s,i)=>s+(i.amount||0),0)
+    const fin=getFinancedInvoices();
+    const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce((s,i)=>{const isF=fin.includes(i.ref||'');return s+(isF?(i.amount||0)*0.2:(i.amount||0));},0)
       + D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
     const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
@@ -1353,7 +1354,7 @@ async function buildForecast() {
     if (paygOut > 0) tagLabels.push('PAYG W/H ' + fc(paygOut));
     // Build itemized breakdowns for click popups
     const inBreakdown = [];
-    D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0) inBreakdown.push({lbl:i.client||i.ref||'Invoice',amt:fc(i.amount)}); });
+    const fin2=getFinancedInvoices();D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0){const isF=fin2.includes(i.ref||'');inBreakdown.push({lbl:(i.client||i.ref||'Invoice')+(isF?' (20% retention)':''),amt:fc(isF?i.amount*0.2:i.amount)});} });
     D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job (est.)',amt:fc(r)}); });
     const outBreakdown = [];
     if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
@@ -1378,16 +1379,28 @@ async function buildForecast() {
     </div></div>\`;}).join('');
 }
 
+// Financed invoice tracking
+function getFinancedInvoices() { return JSON.parse(localStorage.getItem('hs_financed')||'[]'); }
+function toggleFinanced(ref) {
+  let fin = getFinancedInvoices();
+  if (fin.includes(ref)) { fin = fin.filter(r => r !== ref); }
+  else { fin.push(ref); }
+  localStorage.setItem('hs_financed', JSON.stringify(fin));
+  loadInvoices();
+  buildForecast();
+  toast(fin.includes(ref) ? 'Marked as financed (80% received)' : 'Removed finance mark');
+}
+
 async function loadInvoices() {
-  document.getElementById('inv-tbody').innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
+  document.getElementById('inv-tbody').innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
   try {
     const data = IS_DEMO ? {invoices:D.invoices} : await api('/api/invoices');
     const invs = data.invoices||[];
     const total=invs.reduce((s,i)=>s+(i.amount||0),0), od=invs.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
-    document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
-      invs.map(i=>{const d=days(i.due);return\`<tr><td><b>\${i.client||'—'}</b></td><td style="font-size:11px;color:var(--muted)">\${i.ref||'—'}</td><td><b>\${fc(i.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${i.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
-  } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
+    document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
+      invs.map(i=>{const d=days(i.due);const isF=getFinancedInvoices().includes(i.ref||'');return`<tr><td><b>${i.client||'\u2014'}</b></td><td style="font-size:11px;color:var(--muted)">${i.ref||'\u2014'}</td><td><b>${fc(i.amount)}</b>${isF?'<div style="font-size:10px;color:var(--accent)">80% received via finance</div>':''}</td><td style="color:${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">${i.due||'\u2014'}</td><td style="color:${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:${d<=7?700:400}">${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge ${d<0?'br':d<=7?'ba':'bg'}">${d<0?'Overdue':'Current'}</span></td><td><button class="btn ${isF?'btn-primary':'btn-outline'}" style="font-size:10px;padding:3px 8px" onclick="toggleFinanced('${i.ref||''}')">${isF?'Financed':'Mark'}</button></td></tr>`;}).join('');
+  } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="7" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
 async function loadBills() {
