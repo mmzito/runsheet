@@ -808,8 +808,8 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       <div class="card">
         <div class="card-hdr"><span class="card-title">Outstanding Bills</span><button class="btn btn-outline" onclick="loadBills()">Refresh</button></div>
         <div class="tbl-wrap"><table>
-          <thead><tr><th>Supplier</th><th>Amount Due</th><th>Due Date</th><th>Days</th><th>Status</th></tr></thead>
-          <tbody id="bill-tbody"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+          <thead><tr><th>Supplier</th><th>Amount Due</th><th>Due Date</th><th>Planned Pay</th><th>Days</th><th>Status</th></tr></thead>
+          <tbody id="bill-tbody"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
         </table></div>
       </div>
     </div>
@@ -1237,12 +1237,9 @@ async function loadDashboard() {
     const data = await api('/api/summary');
     D.invoices = data.invoices||[]; D.bills = data.bills||[];
     // Update bank balance from Xero if available
-    if (data.bankBalance !== undefined && data.bankBalance !== 0) {
+    if (data.bankBalance !== undefined) {
       D.balance = data.bankBalance;
       localStorage.setItem('hs_bank_balance', D.balance.toString());
-    } else if (D.balance === 0 && data.bankBalance === 0) {
-      // Keep last known balance from localStorage
-      D.balance = parseFloat(localStorage.getItem('hs_bank_balance') || '0');
     }
     document.getElementById('sidebar-balance').textContent = fc(D.balance);
     document.getElementById('dash-sub').textContent = IS_DEMO ? 'Demo data — Creted Civil Pty Ltd' : 'Live data from '+data.tenantName+' · '+new Date().toLocaleTimeString('en-AU');
@@ -1344,7 +1341,7 @@ async function buildForecast() {
     const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce(function(s,i){var isF=fin.indexOf(i.ref||'')>=0;return s+(isF?(i.amount||0)*0.2:(i.amount||0));},0)
       + D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
-    const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
+    var ppDates=getPlannedPayDates();const billsOut = D.bills.filter(function(b){var key=(b.supplier||'')+'_'+b.amount;var payDate=ppDates[key]?new Date(ppDates[key]):new Date(b.due);return payDate>=ws&&payDate<=we;}).reduce(function(s,b){return s+(b.amount||0);},0);
     
     // Direct debit outflows for this week
     const weekDebits = allDebitOccurrences.filter(o => o.date >= ws && o.date <= we);
@@ -1383,7 +1380,7 @@ async function buildForecast() {
     const outBreakdown = [];
     if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
     if (paygOut > 0) outBreakdown.push({lbl:'PAYG W/H',amt:fc(paygOut)});
-    D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).forEach(b => { if(b.amount>0) outBreakdown.push({lbl:b.supplier||'Bill',amt:fc(b.amount)}); });
+    var ppDates2=getPlannedPayDates();D.bills.filter(function(b){var key=(b.supplier||'')+'_'+b.amount;var pd=ppDates2[key]?new Date(ppDates2[key]):new Date(b.due);return pd>=ws&&pd<=we;}).forEach(function(b){ if(b.amount>0) outBreakdown.push({lbl:b.supplier||'Bill',amt:fc(b.amount)}); });
     weekDebits.forEach(dd => outBreakdown.push({lbl:dd.label.replace('DD: ',''),amt:fc(dd.amount)}));
     if (basOut > 0) { allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).forEach(o => outBreakdown.push({lbl:o.label,amt:fc(o.amount)})); }
     weekAssumptions.forEach(a => outBreakdown.push({lbl:a.description+' (Assumed)',amt:fc(a.amount)}));
@@ -1427,16 +1424,38 @@ async function loadInvoices() {
   } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
+// Planned payment date tracking
+function getPlannedPayDates() { return JSON.parse(localStorage.getItem('hs_planned_pay')||'{}'); }
+function getPlannedPayDate(supplier, amount) {
+  var key = (supplier||'')+'_'+amount;
+  var dates = getPlannedPayDates();
+  return dates[key] || '';
+}
+function setPlannedPayDate(supplier, amount, date) {
+  var key = supplier+'_'+amount;
+  var dates = getPlannedPayDates();
+  if (date) { dates[key] = date; } else { delete dates[key]; }
+  localStorage.setItem('hs_planned_pay', JSON.stringify(dates));
+  syncToServer();
+  buildForecast();
+  toast(date ? 'Payment planned for ' + date : 'Planned date removed');
+}
+
 async function loadBills() {
-  document.getElementById('bill-tbody').innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
+  document.getElementById('bill-tbody').innerHTML = '<tr><td colspan="6" class="loading">Loading...</td></tr>';
   try {
     const data = IS_DEMO ? {bills:D.bills} : await api('/api/bills');
     const bls = data.bills||[];
     const total=bls.reduce((s,b)=>s+(b.amount||0),0), od=bls.filter(b=>days(b.due)<0).reduce((s,b)=>s+(b.amount||0),0);
     document.getElementById('bill-stats').innerHTML=\`<div class="stat amber"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${bls.length}</div></div>\`;
-    document.getElementById('bill-tbody').innerHTML = bls.length===0?'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">No outstanding bills</td></tr>':
-      bls.map(b=>{const d=days(b.due);return\`<tr><td><b>\${b.supplier||'—'}</b></td><td><b>\${fc(b.amount)}</b></td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">\${b.due||'—'}</td><td style="color:\${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:\${d<=7?700:400}">\${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge \${d<0?'br':d<=7?'ba':'bg'}">\${d<0?'Overdue':'Current'}</span></td></tr>\`;}).join('');
-  } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="5" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
+    document.getElementById('bill-tbody').innerHTML = bls.length===0?'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">No outstanding bills</td></tr>':
+      bls.map(function(b){var d=days(b.due);var pp=getPlannedPayDate(b.supplier,b.amount);var ppDays=pp?days(pp):d;var isOD=d<0;var isPushed=pp&&pp!==b.due;
+      return '<tr><td><b>'+(b.supplier||'—')+'</b></td><td><b>'+fc(b.amount)+'</b></td>'
+      +'<td style="color:'+(isOD?'var(--danger)':d<=7?'var(--amber)':'inherit')+'">'+(b.due||'—')+(isOD?' <span style="font-size:10px;color:var(--danger)">OVERDUE</span>':'')+'</td>'
+      +'<td><input type="date" value="'+(pp||'')+'" data-sup="'+( b.supplier||'')+'" data-amt="'+b.amount+'" onchange="setPlannedPayDate(this.dataset.sup,parseFloat(this.dataset.amt),this.value)" style="padding:3px 6px;border:1px solid var(--border);border-radius:4px;background:var(--dark);color:var(--text);font-size:11px;width:130px">'+(isPushed?' <span style="font-size:9px;color:var(--amber)">pushed</span>':'')+'</td>'
+      +'<td style="color:'+(isOD?'var(--danger)':d<=7?'var(--amber)':'inherit')+';font-weight:'+(d<=7?700:400)+'">'+(isOD?Math.abs(d)+' OD':d+' days')+'</td>'
+      +'<td><span class="badge '+(isOD?'br':d<=7?'ba':'bg')+'">'+(isOD?'Overdue':'Current')+'</span></td></tr>';}).join('');
+  } catch(e) { document.getElementById('bill-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
 function savePayrollSetting(key, val) { localStorage.setItem(key, val); }
