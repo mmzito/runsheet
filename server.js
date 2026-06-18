@@ -2158,19 +2158,8 @@ initClientTerms();
 function getClientTerms(){return JSON.parse(localStorage.getItem('hs_client_terms')||'[]');}
 
 function getExpectedPaymentDate(dueDate, clientName) {
-  const terms = getClientTerms();
-  const cn = (clientName||'').toLowerCase();
-  const match = terms.find(t => cn.includes(t.client.toLowerCase()));
-  const due = new Date(dueDate);
-  if (!match) return due;
-  if (match.terms === '30eom') {
-    // 30 EOM: paid end of month after invoice month
-    // Due date from Xero is already invoice date + 30 days
-    // So due 30 June = invoiced ~1 June = paid end of July
-    return new Date(due.getFullYear(), due.getMonth() + 1 + 1, 0);
-  }
-  // For 14 and 30 day terms, Xero due date is already correct
-  return due;
+  // Xero due dates already include payment terms — use them as-is
+  return new Date(dueDate);
 }
 
 function initRates(){const ex=localStorage.getItem('hs_rates');if(!ex||JSON.parse(ex).length===0)localStorage.setItem('hs_rates',JSON.stringify(DEFAULT_RATES));}
