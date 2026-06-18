@@ -472,7 +472,7 @@ function buildScheduleHTML(token) {
 .gantt-label{width:160px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--border)}
 .gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
-.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px;cursor:pointer;transition:opacity 0.15s}.gantt-bar:hover{opacity:0.85}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:flex-start;font-size:10px;padding-left:6px;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px;cursor:pointer;transition:opacity 0.15s}.gantt-bar:hover{opacity:0.85}
 .gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3}
 .gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase}
 .gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--border);opacity:0.5}
@@ -583,56 +583,17 @@ app.get('/debug-session', (req, res) => {
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 
-// ── SERVER-SIDE STORAGE ────────────────────────────────────────────────────
 const fs = require('fs');
 const path = require('path');
 const DATA_DIR = path.join(__dirname, 'data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, {recursive: true});
-
-function getDataPath(tenantId) {
-  const safe = (tenantId || 'default').replace(/[^a-zA-Z0-9-]/g, '_');
-  return path.join(DATA_DIR, safe + '.json');
-}
-
-function loadUserData(tenantId) {
-  const fp = getDataPath(tenantId);
-  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); }
-  catch(e) { return { jobs: [], debits: [], financed: [], clientTerms: [], rates: [], settings: {} }; }
-}
-
-function saveUserData(tenantId, data) {
-  const fp = getDataPath(tenantId);
-  fs.writeFileSync(fp, JSON.stringify(data, null, 2));
-}
-
-// Save all user data (called from client on every change)
-app.post('/api/data/save', requireAuth, express.json(), (req, res) => {
-  try {
-    const tenantId = req.session.activeTenantId || 'default';
-    const data = req.body;
-    saveUserData(tenantId, data);
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Load all user data
-app.get('/api/data/load', requireAuth, (req, res) => {
-  try {
-    const tenantId = req.session.activeTenantId || 'default';
-    const data = loadUserData(tenantId);
-    res.json(data);
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Demo data save/load (uses 'demo' as tenant)
-app.post('/api/data/save-demo', express.json(), (req, res) => {
-  try { saveUserData('demo', req.body); res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-app.get('/api/data/load-demo', (req, res) => {
-  try { res.json(loadUserData('demo')); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
+function getDataPath(tid) { return path.join(DATA_DIR, (tid||'default').replace(/[^a-zA-Z0-9-]/g,'_')+'.json'); }
+function loadUD(tid) { try{return JSON.parse(fs.readFileSync(getDataPath(tid),'utf8'));}catch(e){return {jobs:[],debits:[],financed:[],settings:{}};} }
+function saveUD(tid,d) { fs.writeFileSync(getDataPath(tid),JSON.stringify(d,null,2)); }
+app.post('/api/data/save', requireAuth, express.json(), (req,res) => { try{saveUD(req.session.activeTenantId||'default',req.body);res.json({success:true});}catch(e){res.status(500).json({error:e.message});} });
+app.get('/api/data/load', requireAuth, (req,res) => { try{res.json(loadUD(req.session.activeTenantId||'default'));}catch(e){res.status(500).json({error:e.message});} });
+app.post('/api/data/save-demo', express.json(), (req,res) => { try{saveUD('demo',req.body);res.json({success:true});}catch(e){res.status(500).json({error:e.message});} });
+app.get('/api/data/load-demo', (req,res) => { try{res.json(loadUD('demo'));}catch(e){res.status(500).json({error:e.message});} });
 
 app.get('/app', async (req, res) => {
   const isDemo = req.query.demo === 'true';
@@ -737,7 +698,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
 .gantt-label{width:180px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:sticky;left:0;background:inherit;z-index:1;border-right:1px solid var(--border)}
 .gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
-.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px;cursor:default;transition:opacity 0.15s;min-width:8px}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:flex-start;font-size:10px;padding-left:6px;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px;cursor:default;transition:opacity 0.15s;min-width:8px}
 .gantt-bar:hover{opacity:0.85}
 .gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3;pointer-events:none}
 .gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:0.08em}
@@ -969,7 +930,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       </div>
       <div id="schedule-container" style="display:none">
         <div class="card gantt-colors">
-          <div class="card-hdr"><span class="card-title">Work Schedule</span><select id="crew-filter" onchange="renderGantt()" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--dark);color:var(--text);font-size:12px;margin-left:10px"><option value="">All Crews</option><option value="Brandon">Brandon</option><option value="Marc">Marc</option></select><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-hdr"><span class="card-title">Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
           <div class="card-body" style="padding:0">
             <div class="gantt-wrap" id="gantt-scroll">
               <div class="gantt" id="gantt-chart"></div>
@@ -1014,7 +975,6 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
     <div class="modal-hdr"><span class="modal-title">Add Job to Pipeline</span><button class="modal-close" onclick="closeModal('job-modal')">×</button></div>
     <div class="modal-body">
       <div class="form-row"><div class="form-field"><label>Job Name</label><input type="text" id="job-name"></div><div class="form-field"><label>Client / Council</label><input type="text" id="job-client"></div></div>
-      <div class="form-row"><div class="form-field"><label>Crew</label><select id="job-crew"><option value="">All / Unassigned</option><option value="Brandon">Brandon's Crew</option><option value="Marc">Marc's Crew</option></select></div><div class="form-field"></div></div>
       <div class="form-row"><div class="form-field"><label>Work Start</label><input type="date" id="job-start"></div><div class="form-field"><label>Work End</label><input type="date" id="job-end"></div></div>
       <div class="form-row"><div class="form-field"><label>Revenue (ex-GST) $</label><input type="number" id="job-rev" oninput="previewJob()"></div><div class="form-field"><label>Direct Costs (ex-GST) $</label><input type="number" id="job-costs" oninput="previewJob()"></div></div>
       <div class="form-row"><div class="form-field"><label>Job Status</label><select id="job-status"><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option><option value="Invoiced">Invoiced</option></select></div><div class="form-field"><label>Xero Invoice Ref (if invoiced)</label><input type="text" id="job-invoice-ref" placeholder="e.g. INV20260025"></div></div>
@@ -1112,54 +1072,15 @@ const IS_DEMO = ${isDemo};
     localStorage.setItem('hs_migrated', '1');
   }
 })();
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:[], debits:[], atoQuarters:[], balance: 0, financed: [], clientTerms: [], settings: {} };
-let _saveTimer = null;
-
-// Server-side sync
-async function loadServerData() {
-  try {
-    const url = IS_DEMO ? '/api/data/load-demo' : '/api/data/load';
-    const r = await fetch(url, {credentials:'same-origin'});
-    if (r.ok) {
-      const data = await r.json();
-      if (data.jobs && data.jobs.length > 0) D.jobs = data.jobs;
-      if (data.debits && data.debits.length > 0) D.debits = data.debits;
-      if (data.financed) { localStorage.setItem('hs_financed', JSON.stringify(data.financed)); }
-      if (data.settings && data.settings.balance) D.balance = data.settings.balance;
-      // Also save to localStorage as cache
-      localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
-      localStorage.setItem('hs_debits', JSON.stringify(D.debits));
-      if (D.balance) localStorage.setItem('hs_bank_balance', D.balance.toString());
-      console.log('Loaded from server: ' + D.jobs.length + ' jobs, ' + D.debits.length + ' debits');
-      return true;
-    }
-  } catch(e) { console.log('Server load failed, using localStorage:', e.message); }
-  // Fallback to localStorage
-  D.jobs = JSON.parse(localStorage.getItem('hs_jobs')||'[]');
-  D.debits = JSON.parse(localStorage.getItem('hs_debits')||'[]');
-  D.balance = parseFloat(localStorage.getItem('hs_bank_balance') || '0');
-  return false;
-}
-
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('hs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('hs_debits')||'[]'), atoQuarters:[], balance: parseFloat(localStorage.getItem('hs_bank_balance') || '0') };
+var _saveTimer = null;
 function syncToServer() {
-  // Debounce: save 2 seconds after last change
   if (_saveTimer) clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(async function() {
-    try {
-      const url = IS_DEMO ? '/api/data/save-demo' : '/api/data/save';
-      const payload = {
-        jobs: D.jobs,
-        debits: D.debits,
-        financed: getFinancedInvoices(),
-        settings: { balance: D.balance }
-      };
-      const r = await fetch(url, {
-        method: 'POST', credentials: 'same-origin',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload)
-      });
-      if (r.ok) console.log('Synced to server');
-    } catch(e) { console.log('Server sync failed:', e.message); }
+  _saveTimer = setTimeout(function() {
+    var url = IS_DEMO ? '/api/data/save-demo' : '/api/data/save';
+    fetch(url, {method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jobs:D.jobs,debits:D.debits,financed:getFinancedInvoices(),settings:{balance:D.balance}})
+    }).then(function(r){if(r.ok)console.log('Synced');}).catch(function(e){console.log('Sync failed:',e);});
   }, 2000);
 }
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
@@ -1418,8 +1339,8 @@ async function buildForecast() {
   for(let w=0;w<52;w++) {
     const ws=new Date(start); ws.setDate(start.getDate()+w*7);
     const we=new Date(ws); we.setDate(ws.getDate()+6);
-    const fin=getFinancedInvoices();
-    const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce((s,i)=>{const isF=fin.includes(i.ref||'');return s+(isF?(i.amount||0)*0.2:(i.amount||0));},0)
+    var fin=getFinancedInvoices();
+    const inflows = D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).reduce(function(s,i){var isF=fin.indexOf(i.ref||'')>=0;return s+(isF?(i.amount||0)*0.2:(i.amount||0));},0)
       + D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).reduce((s,j)=>s+(parseFloat(j.revenue)||0),0);
     const basOut = allBAS.filter(o=>{const d=new Date(o.date);return d>=ws&&d<=we;}).reduce((s,o)=>s+(o.amount||0),0);
     const billsOut = D.bills.filter(b=>{const d=new Date(b.due);return d>=ws&&d<=we;}).reduce((s,b)=>s+(b.amount||0),0);
@@ -1456,7 +1377,7 @@ async function buildForecast() {
     if (paygOut > 0) tagLabels.push('PAYG W/H ' + fc(paygOut));
     // Build itemized breakdowns for click popups
     const inBreakdown = [];
-    const fin2=getFinancedInvoices();D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).forEach(i => { if(i.amount>0){const isF=fin2.includes(i.ref||'');inBreakdown.push({lbl:(i.client||i.ref||'Invoice')+(isF?' (20% retention)':''),amt:fc(isF?i.amount*0.2:i.amount)});} });
+    var fin2=getFinancedInvoices();D.invoices.filter(i=>{const d=getExpectedPaymentDate(i.due,i.client||i.ref||'');return d>=ws&&d<=we;}).forEach(function(i){ if(i.amount>0){var isF=fin2.indexOf(i.ref||'')>=0;inBreakdown.push({lbl:(i.client||i.ref||'Invoice')+(isF?' (20% retention)':''),amt:fc(isF?i.amount*0.2:i.amount)});} });
     D.jobs.filter(j=>j.paymentDate&&(j.status||'Scheduled')!=='Invoiced'&&new Date(j.paymentDate)>=ws&&new Date(j.paymentDate)<=we).forEach(j => { const r=parseFloat(j.revenue)||0; if(r>0) inBreakdown.push({lbl:j.name||'Job (est.)',amt:fc(r)}); });
     const outBreakdown = [];
     if (payrollOut > 0) outBreakdown.push({lbl:'Payroll (net+super)',amt:fc(payrollOut)});
@@ -1484,13 +1405,13 @@ async function buildForecast() {
 // Financed invoice tracking
 function getFinancedInvoices() { return JSON.parse(localStorage.getItem('hs_financed')||'[]'); }
 function toggleFinanced(ref) {
-  let fin = getFinancedInvoices();
-  if (fin.includes(ref)) { fin = fin.filter(r => r !== ref); }
+  var fin = getFinancedInvoices();
+  if (fin.indexOf(ref) >= 0) { fin = fin.filter(function(r){ return r !== ref; }); }
   else { fin.push(ref); }
-  localStorage.setItem('hs_financed', JSON.stringify(fin));syncToServer();
+  localStorage.setItem('hs_financed', JSON.stringify(fin));
   loadInvoices();
   buildForecast();
-  toast(fin.includes(ref) ? 'Marked as financed (80% received)' : 'Removed finance mark');
+  toast(fin.indexOf(ref)>=0 ? 'Marked as financed (80% received)' : 'Removed finance mark');
 }
 
 async function loadInvoices() {
@@ -1501,8 +1422,8 @@ async function loadInvoices() {
     const total=invs.reduce((s,i)=>s+(i.amount||0),0), od=invs.filter(i=>days(i.due)<0).reduce((s,i)=>s+(i.amount||0),0);
     document.getElementById('inv-stats').innerHTML=\`<div class="stat"><div class="stat-lbl">Outstanding</div><div class="stat-val">\${fc(total)}</div></div><div class="stat \${od>0?'red':''}"><div class="stat-lbl">Overdue</div><div class="stat-val \${od>0?'neg':''}">\${fc(od)}</div></div><div class="stat"><div class="stat-lbl">Count</div><div class="stat-val">\${invs.length}</div></div>\`;
     document.getElementById('inv-tbody').innerHTML = invs.length===0?'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No outstanding invoices</td></tr>':
-      invs.map(i=>{const d=days(i.due);const isF=getFinancedInvoices().includes(i.ref||'');return`<tr><td><b>${i.client||'\u2014'}</b></td><td style="font-size:11px;color:var(--muted)">${i.ref||'\u2014'}</td><td><b>${fc(i.amount)}</b>${isF?'<div style="font-size:10px;color:var(--accent)">80% received via finance</div>':''}</td><td style="color:${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'}">${i.due||'\u2014'}</td><td style="color:${d<0?'var(--danger)':d<=7?'var(--amber)':'inherit'};font-weight:${d<=7?700:400}">${d<0?Math.abs(d)+' OD':d+' days'}</td><td><span class="badge ${d<0?'br':d<=7?'ba':'bg'}">${d<0?'Overdue':'Current'}</span></td><td><button class="btn ${isF?'btn-primary':'btn-outline'}" style="font-size:10px;padding:3px 8px" onclick="toggleFinanced('${i.ref||''}')">${isF?'Financed':'Mark'}</button></td></tr>`;}).join('');
-  } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="7" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
+      invs.map(function(i){var d=days(i.due);var isF=getFinancedInvoices().indexOf(i.ref||'')>=0;var cls=d<0?'br':d<=7?'ba':'bg';var dClr=d<0?'var(--danger)':d<=7?'var(--amber)':'inherit';return '<tr><td><b>'+(i.client||'—')+'</b></td><td style="font-size:11px;color:var(--muted)">'+(i.ref||'—')+'</td><td><b>'+fc(i.amount)+'</b>'+(isF?'<div style="font-size:10px;color:var(--accent)">80% received via finance</div>':'')+'</td><td style="color:'+dClr+'">'+(i.due||'—')+'</td><td style="color:'+dClr+';font-weight:'+(d<=7?700:400)+'">'+(d<0?Math.abs(d)+' OD':d+' days')+'</td><td><span class="badge '+cls+'">'+(d<0?'Overdue':'Current')+'</span></td><td><button class="btn '+(isF?'btn-primary':'btn-outline')+'" style="font-size:10px;padding:3px 8px" onclick="toggleFinanced(\''+( i.ref||'')+'\')">'+( isF?'Financed':'Mark')+'</button></td></tr>';}).join('');
+  } catch(e) { document.getElementById('inv-tbody').innerHTML=\`<tr><td colspan="6" style="color:var(--danger);padding:16px">Error: \${e.message}</td></tr>\`; }
 }
 
 async function loadBills() {
@@ -1761,21 +1682,21 @@ function getATOBASOutflows() {
 }
 
 function loadDemoJobs() {
-  if (D.jobs.length > 0) return;
+  if (!IS_DEMO || D.jobs.length > 0) return;
   D.jobs = [
-    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',crew:'Brandon',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
-    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',crew:'Brandon',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
-    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',crew:'Marc',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31',status:'In Progress'},
-    {id:'j4',name:'Miller St Epping',client:'Little Rock',crew:'Marc',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
-    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',crew:'Brandon',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31',status:'In Progress'},
+    {id:'j4',name:'Miller St Epping',client:'Little Rock',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
     {id:'j6',name:'Vincent Dr South Morang',client:'Metro (Cole Civil)',startDate:'2026-06-23',endDate:'2026-06-27',revenue:17910,costs:10451,terms:'30eom',paymentDate:'2026-07-31'},
     {id:'j7',name:'Boyd Pl Mill Park',client:'Metro (Cole Civil)',startDate:'2026-06-16',endDate:'2026-06-20',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j8',name:'Civic Pde Altona',client:'Novacon',crew:'Marc',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j9',name:'Oakdale Pl Thomastown',client:'Metro (Cole Civil)',crew:'Brandon',startDate:'2026-07-07',endDate:'2026-07-18',revenue:28298,costs:23748,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j8',name:'Civic Pde Altona',client:'Novacon',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j9',name:'Oakdale Pl Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-07',endDate:'2026-07-18',revenue:28298,costs:23748,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j10',name:'Middle Crt Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-14',endDate:'2026-07-18',revenue:15015,costs:12119,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j11',name:'Scullin & Evatt Crt Mill Park',client:'Metro (Cole Civil)',startDate:'2026-07-21',endDate:'2026-07-25',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j12',name:'Downey Dr Doreen',client:'Metro (Cole Civil)',startDate:'2026-07-28',endDate:'2026-08-08',revenue:31198,costs:29407,terms:'30eom',paymentDate:'2026-09-30'},
-    {id:'j13',name:'St Catherines Toorak',client:'Pana Group',crew:'Marc',startDate:'2026-07-14',endDate:'2026-07-25',revenue:53233,costs:38286,terms:'30eom',paymentDate:'2026-08-31'}
+    {id:'j13',name:'St Catherines Toorak',client:'Pana Group',startDate:'2026-07-14',endDate:'2026-07-25',revenue:53233,costs:38286,terms:'30eom',paymentDate:'2026-08-31'}
   ];
   localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
 }
@@ -1784,21 +1705,16 @@ function renderJobs() {
   if (D.jobs.length === 0 && IS_DEMO) loadDemoJobs();
   const el=document.getElementById('jobs-content');
   if(D.jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">No jobs yet. Add upcoming jobs to see payment timing in the forecast.</div>';return;}
-  const _today=new Date();_today.setHours(0,0,0,0);
-  // Split active vs completed
-  const activeIdx=[];const compIdx=[];
-  D.jobs.forEach((j,i)=>{const end=j.endDate?new Date(j.endDate):null;if(end&&end<_today&&(j.status||'')!=='In Progress'){compIdx.push(i);}else{activeIdx.push(i);}});
   el.innerHTML=\`<div class="card"><div class="card-hdr"><span class="card-title">Job Pipeline</span></div><div class="tbl-wrap"><table>
     <thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Payment Date</th><th>Status</th><th></th></tr></thead>
-    <tbody>\${activeIdx.map(i=>{const j=D.jobs[i];const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
+    <tbody>\${D.jobs.map((j,i)=>{const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
     <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
     <td style="font-size:12px">\${j.paymentDate||'—'}</td>
     <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' (long gap)':''):'—'}</td>
     <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
     <td style="white-space:nowrap"><button class="btn btn-outline" onclick="editJob(\${i})" style="font-size:11px;padding:4px 8px;margin-right:4px">Edit</button><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
-    </tbody></table></div></div>
-    \${compIdx.length>0?'<div class="card" style="margin-top:18px"><div class="card-hdr"><span class="card-title">Completed Jobs</span><span style="font-size:11px;color:var(--muted)">'+compIdx.length+' jobs</span></div><div class="tbl-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Status</th><th></th></tr></thead><tbody>'+compIdx.map(function(i){var j=D.jobs[i];var rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0;var st=j.status||'Complete';return '<tr style="opacity:0.5"><td><b>'+j.name+'</b></td><td>'+j.client+'</td><td>'+fc(rev)+'</td><td>'+fc(costs)+'</td><td>'+margin+'%</td><td><span class="badge bg">'+st+'</span></td><td><button class="btn btn-outline" onclick="deleteJob('+i+')" style="font-size:11px;padding:4px 8px">\u2715</button></td></tr>';}).join('')+'</tbody></table></div></div>':''}`;
+    </tbody></table></div></div>\`;
 }
 
 function previewJob() {
@@ -1834,7 +1750,6 @@ function saveJob() {
   const j={id:'j'+Date.now(),name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
     costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines],
-    crew:document.getElementById('job-crew').value||'',
     status:document.getElementById('job-status').value||'Scheduled',
     invoiceRef:document.getElementById('job-invoice-ref').value||''};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
@@ -1848,7 +1763,6 @@ function editJob(i) {
   if (!j) return;
   document.getElementById('job-name').value = j.name || '';
   document.getElementById('job-client').value = j.client || '';
-  if(document.getElementById('job-crew')) document.getElementById('job-crew').value = j.crew || '';
   document.getElementById('job-start').value = j.startDate || '';
   document.getElementById('job-end').value = j.endDate || '';
   document.getElementById('job-rev').value = j.revenue || '';
@@ -1885,11 +1799,10 @@ function saveJobEdit(i) {
     costs: document.getElementById('job-costs').value,
     terms, paymentDate,
     costBreakdown: [...costLines],
-    crew: document.getElementById('job-crew').value || '',
     status: document.getElementById('job-status').value || 'Scheduled',
     invoiceRef: document.getElementById('job-invoice-ref').value || ''
   };
-  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));syncToServer();
+  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
   closeModal('job-modal');
   // Reset modal for next add
   document.querySelector('#job-modal .modal-title').textContent = 'Add Job to Pipeline';
@@ -1900,6 +1813,20 @@ function saveJobEdit(i) {
   toast('Job updated ✓');
 }
 
+function editJob(i) {
+  var j = D.jobs[i]; if (!j) return;
+  document.getElementById('job-name').value = j.name || '';
+  document.getElementById('job-client').value = j.client || '';
+  document.getElementById('job-start').value = j.startDate || '';
+  document.getElementById('job-end').value = j.endDate || '';
+  document.getElementById('job-rev').value = j.revenue || '';
+  document.getElementById('job-costs').value = j.costs || '';
+  document.getElementById('job-terms').value = j.terms || '30eom';
+  costLines = j.costBreakdown || [];
+  window._editJobIndex = i;
+  previewJob();
+  openModal('job-modal');
+}
 function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));syncToServer();renderJobs();renderGantt();toast('Removed');}
 
 // ── GANTT CHART ───────────────────────────────────────────────────────────
@@ -1939,15 +1866,13 @@ function ganttNext(){ganttOffset++;renderGantt();}
 
 function renderGantt(){
   const el=document.getElementById('gantt-chart');
-  const cf=document.getElementById('crew-filter');const crewF=cf?cf.value:'';
-  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate&&(!crewF||!j.crew||j.crew===crewF));
+  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
   if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Work Schedule.</div>';return;}
   const sorted=[...jobs].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   const today=new Date();
   today.setHours(0,0,0,0);
   // View window: 3 months from base, scrollable
-  // Start from this week's Monday
-  const thisMonday=new Date(today);thisMonday.setDate(today.getDate()-((today.getDay()+6)%7));
+  var thisMonday=new Date(today);thisMonday.setDate(today.getDate()-((today.getDay()+6)%7));
   const viewStart=new Date(thisMonday);viewStart.setDate(viewStart.getDate()+ganttOffset*21);
   const viewEnd=new Date(viewStart);viewEnd.setDate(viewEnd.getDate()+12*7);
   const totalDays=Math.ceil((viewEnd-viewStart)/86400000)+1;
@@ -1996,7 +1921,7 @@ function renderGantt(){
     const fmt=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
     html+='<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);min-height:44px">';
     html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--text);border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
-    html+=j.name+(j.crew?' <span style="font-size:9px;opacity:0.7">['+j.crew+']</span>':'')+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
+    html+=j.name+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
     html+='</div>';
     // Skip if completely outside view
     if(offEnd<0||offStart>totalDays){
@@ -2038,7 +1963,6 @@ function loadDebits() {
     if (Array.isArray(demoDebits) && demoDebits.length > 0) {
       D.debits = demoDebits;
       localStorage.setItem('hs_debits', JSON.stringify(D.debits));
-      syncToServer();
     }
   }
   renderDebits();
@@ -2134,7 +2058,7 @@ function saveDebit() {
   } else {
     D.debits.push(d);
   }
-  localStorage.setItem('hs_debits', JSON.stringify(D.debits));syncToServer();
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
   closeModal('debit-modal');
   renderDebits();
   toast(editId ? 'Debit updated ✓' : 'Debit added ✓');
@@ -2143,7 +2067,7 @@ function saveDebit() {
 function deleteDebit(id) {
   if (!confirm('Remove this direct debit?')) return;
   D.debits = D.debits.filter(d => d.id !== id);
-  localStorage.setItem('hs_debits', JSON.stringify(D.debits));syncToServer();
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
   renderDebits();
   toast('Removed');
 }
@@ -2394,7 +2318,7 @@ async function syncXero() {
   const btn = document.getElementById('sync-btn');
   if(btn) { btn.textContent = '\u21bb Syncing...'; btn.disabled = true; }
   try {
-    await loadServerData().then(function(){ loadDashboard(); });
+    await loadDashboard();
     await Promise.allSettled([
       api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(()=>{}),
       api('/api/payroll').then(data => {
@@ -2442,4 +2366,3 @@ api('/api/payroll').then(data => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Headstart v1.4 running on port ${PORT}`));
 // deploy trigger Thu 21 May 2026 21:07:11 AEST
-// Build 1781749037
