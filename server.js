@@ -582,6 +582,58 @@ app.get('/debug-session', (req, res) => {
 });
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
+
+// ── SERVER-SIDE STORAGE ────────────────────────────────────────────────────
+const fs = require('fs');
+const path = require('path');
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, {recursive: true});
+
+function getDataPath(tenantId) {
+  const safe = (tenantId || 'default').replace(/[^a-zA-Z0-9-]/g, '_');
+  return path.join(DATA_DIR, safe + '.json');
+}
+
+function loadUserData(tenantId) {
+  const fp = getDataPath(tenantId);
+  try { return JSON.parse(fs.readFileSync(fp, 'utf8')); }
+  catch(e) { return { jobs: [], debits: [], financed: [], clientTerms: [], rates: [], settings: {} }; }
+}
+
+function saveUserData(tenantId, data) {
+  const fp = getDataPath(tenantId);
+  fs.writeFileSync(fp, JSON.stringify(data, null, 2));
+}
+
+// Save all user data (called from client on every change)
+app.post('/api/data/save', requireAuth, express.json(), (req, res) => {
+  try {
+    const tenantId = req.session.activeTenantId || 'default';
+    const data = req.body;
+    saveUserData(tenantId, data);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Load all user data
+app.get('/api/data/load', requireAuth, (req, res) => {
+  try {
+    const tenantId = req.session.activeTenantId || 'default';
+    const data = loadUserData(tenantId);
+    res.json(data);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Demo data save/load (uses 'demo' as tenant)
+app.post('/api/data/save-demo', express.json(), (req, res) => {
+  try { saveUserData('demo', req.body); res.json({ success: true }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.get('/api/data/load-demo', (req, res) => {
+  try { res.json(loadUserData('demo')); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/app', async (req, res) => {
   const isDemo = req.query.demo === 'true';
   if (!isDemo && !req.session.tokenSet) return res.redirect('/connect');
@@ -1060,7 +1112,56 @@ const IS_DEMO = ${isDemo};
     localStorage.setItem('hs_migrated', '1');
   }
 })();
-let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:JSON.parse(localStorage.getItem('hs_jobs')||'[]'), debits:JSON.parse(localStorage.getItem('hs_debits')||'[]'), atoQuarters:[], balance: parseFloat(localStorage.getItem('hs_bank_balance') || '0') };
+let D = { invoices:[], bills:[], payRuns:[], payroll: null, jobs:[], debits:[], atoQuarters:[], balance: 0, financed: [], clientTerms: [], settings: {} };
+let _saveTimer = null;
+
+// Server-side sync
+async function loadServerData() {
+  try {
+    const url = IS_DEMO ? '/api/data/load-demo' : '/api/data/load';
+    const r = await fetch(url, {credentials:'same-origin'});
+    if (r.ok) {
+      const data = await r.json();
+      if (data.jobs && data.jobs.length > 0) D.jobs = data.jobs;
+      if (data.debits && data.debits.length > 0) D.debits = data.debits;
+      if (data.financed) { localStorage.setItem('hs_financed', JSON.stringify(data.financed)); }
+      if (data.settings && data.settings.balance) D.balance = data.settings.balance;
+      // Also save to localStorage as cache
+      localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
+      localStorage.setItem('hs_debits', JSON.stringify(D.debits));
+      if (D.balance) localStorage.setItem('hs_bank_balance', D.balance.toString());
+      console.log('Loaded from server: ' + D.jobs.length + ' jobs, ' + D.debits.length + ' debits');
+      return true;
+    }
+  } catch(e) { console.log('Server load failed, using localStorage:', e.message); }
+  // Fallback to localStorage
+  D.jobs = JSON.parse(localStorage.getItem('hs_jobs')||'[]');
+  D.debits = JSON.parse(localStorage.getItem('hs_debits')||'[]');
+  D.balance = parseFloat(localStorage.getItem('hs_bank_balance') || '0');
+  return false;
+}
+
+function syncToServer() {
+  // Debounce: save 2 seconds after last change
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async function() {
+    try {
+      const url = IS_DEMO ? '/api/data/save-demo' : '/api/data/save';
+      const payload = {
+        jobs: D.jobs,
+        debits: D.debits,
+        financed: getFinancedInvoices(),
+        settings: { balance: D.balance }
+      };
+      const r = await fetch(url, {
+        method: 'POST', credentials: 'same-origin',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (r.ok) console.log('Synced to server');
+    } catch(e) { console.log('Server sync failed:', e.message); }
+  }, 2000);
+}
 const fc = n => n==null?'—':(n<0?'-$':'$')+Math.abs(n).toLocaleString('en-AU',{minimumFractionDigits:0,maximumFractionDigits:0});
 const days = d => Math.ceil((new Date(d)-new Date())/86400000);
 
@@ -1386,7 +1487,7 @@ function toggleFinanced(ref) {
   let fin = getFinancedInvoices();
   if (fin.includes(ref)) { fin = fin.filter(r => r !== ref); }
   else { fin.push(ref); }
-  localStorage.setItem('hs_financed', JSON.stringify(fin));
+  localStorage.setItem('hs_financed', JSON.stringify(fin));syncToServer();
   loadInvoices();
   buildForecast();
   toast(fin.includes(ref) ? 'Marked as financed (80% received)' : 'Removed finance mark');
@@ -1660,7 +1761,7 @@ function getATOBASOutflows() {
 }
 
 function loadDemoJobs() {
-  if (!IS_DEMO || D.jobs.length > 0) return;
+  if (D.jobs.length > 0) return;
   D.jobs = [
     {id:'j1',name:'Mackey St Lalor',client:'Little Rock',crew:'Brandon',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
     {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',crew:'Brandon',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
@@ -1788,7 +1889,7 @@ function saveJobEdit(i) {
     status: document.getElementById('job-status').value || 'Scheduled',
     invoiceRef: document.getElementById('job-invoice-ref').value || ''
   };
-  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
+  localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));syncToServer();
   closeModal('job-modal');
   // Reset modal for next add
   document.querySelector('#job-modal .modal-title').textContent = 'Add Job to Pipeline';
@@ -1799,7 +1900,7 @@ function saveJobEdit(i) {
   toast('Job updated ✓');
 }
 
-function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));renderJobs();renderGantt();toast('Removed');}
+function deleteJob(i){if(!confirm('Remove?'))return;D.jobs.splice(i,1);localStorage.setItem('hs_jobs',JSON.stringify(D.jobs));syncToServer();renderJobs();renderGantt();toast('Removed');}
 
 // ── GANTT CHART ───────────────────────────────────────────────────────────
 const GANTT_COLORS=['#FF6B35','#2EC4B6','#6366F1','#F59E0B','#EC4899','#14B8A6','#8B5CF6','#F97316'];
@@ -1937,6 +2038,7 @@ function loadDebits() {
     if (Array.isArray(demoDebits) && demoDebits.length > 0) {
       D.debits = demoDebits;
       localStorage.setItem('hs_debits', JSON.stringify(D.debits));
+      syncToServer();
     }
   }
   renderDebits();
@@ -2032,7 +2134,7 @@ function saveDebit() {
   } else {
     D.debits.push(d);
   }
-  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));syncToServer();
   closeModal('debit-modal');
   renderDebits();
   toast(editId ? 'Debit updated ✓' : 'Debit added ✓');
@@ -2041,7 +2143,7 @@ function saveDebit() {
 function deleteDebit(id) {
   if (!confirm('Remove this direct debit?')) return;
   D.debits = D.debits.filter(d => d.id !== id);
-  localStorage.setItem('hs_debits', JSON.stringify(D.debits));
+  localStorage.setItem('hs_debits', JSON.stringify(D.debits));syncToServer();
   renderDebits();
   toast('Removed');
 }
@@ -2292,7 +2394,7 @@ async function syncXero() {
   const btn = document.getElementById('sync-btn');
   if(btn) { btn.textContent = '\u21bb Syncing...'; btn.disabled = true; }
   try {
-    await loadDashboard();
+    await loadServerData().then(function(){ loadDashboard(); });
     await Promise.allSettled([
       api('/api/ato').then(data => { D.atoQuarters = data.quarters || []; }).catch(()=>{}),
       api('/api/payroll').then(data => {
