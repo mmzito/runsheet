@@ -472,7 +472,7 @@ function buildScheduleHTML(token) {
 .gantt-label{width:160px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-right:1px solid var(--border)}
 .gantt-label small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .gantt-track{flex:1;position:relative;height:40px;display:flex;align-items:center}
-.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:flex-start;font-size:10px;padding-left:6px;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:#fff;white-space:nowrap;padding:0 8px;min-width:8px;cursor:pointer;transition:opacity 0.15s}.gantt-bar:hover{opacity:0.85}
+.gantt-bar{position:absolute;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:flex-start;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;min-width:8px;cursor:pointer;transition:opacity 0.15s}.gantt-bar:hover{opacity:0.85}
 .gantt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:3}
 .gantt-today::before{content:'Today';position:absolute;top:-18px;left:-16px;font-size:9px;font-weight:700;color:var(--danger);text-transform:uppercase}
 .gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--border);opacity:0.5}
@@ -930,7 +930,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       </div>
       <div id="schedule-container" style="display:none">
         <div class="card gantt-colors">
-          <div class="card-hdr"><span class="card-title">Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-hdr"><span class="card-title">Work Schedule</span><select id="crew-filter" onchange="renderGantt()" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--dark);color:var(--text);font-size:12px;margin-left:10px"><option value="">All Crews</option><option value="Brandon">Brandon</option><option value="Marc">Marc</option></select><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
           <div class="card-body" style="padding:0">
             <div class="gantt-wrap" id="gantt-scroll">
               <div class="gantt" id="gantt-chart"></div>
@@ -975,6 +975,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
     <div class="modal-hdr"><span class="modal-title">Add Job to Pipeline</span><button class="modal-close" onclick="closeModal('job-modal')">×</button></div>
     <div class="modal-body">
       <div class="form-row"><div class="form-field"><label>Job Name</label><input type="text" id="job-name"></div><div class="form-field"><label>Client / Council</label><input type="text" id="job-client"></div></div>
+      <div class="form-row"><div class="form-field"><label>Crew</label><select id="job-crew"><option value="">All / Unassigned</option><option value="Brandon">Brandon\'s Crew</option><option value="Marc">Marc\'s Crew</option></select></div><div class="form-field"><label>Job Status</label><select id="job-status"><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option><option value="Invoiced">Invoiced</option></select></div></div>
       <div class="form-row"><div class="form-field"><label>Work Start</label><input type="date" id="job-start"></div><div class="form-field"><label>Work End</label><input type="date" id="job-end"></div></div>
       <div class="form-row"><div class="form-field"><label>Revenue (ex-GST) $</label><input type="number" id="job-rev" oninput="previewJob()"></div><div class="form-field"><label>Direct Costs (ex-GST) $</label><input type="number" id="job-costs" oninput="previewJob()"></div></div>
       <div class="form-row"><div class="form-field"><label>Job Status</label><select id="job-status"><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option><option value="Invoiced">Invoiced</option></select></div><div class="form-field"><label>Xero Invoice Ref (if invoiced)</label><input type="text" id="job-invoice-ref" placeholder="e.g. INV20260025"></div></div>
@@ -1749,7 +1750,7 @@ function saveJob() {
   }
   const j={id:'j'+Date.now(),name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
-    costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines],
+    costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines],crew:document.getElementById('job-crew')?document.getElementById('job-crew').value:'',status:document.getElementById('job-status')?document.getElementById('job-status').value:'Scheduled',
     status:document.getElementById('job-status').value||'Scheduled',
     invoiceRef:document.getElementById('job-invoice-ref').value||''};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
@@ -1768,6 +1769,8 @@ function editJob(i) {
   document.getElementById('job-rev').value = j.revenue || '';
   document.getElementById('job-costs').value = j.costs || '';
   document.getElementById('job-terms').value = j.terms || '30eom';
+  if(document.getElementById('job-crew')) document.getElementById('job-crew').value = j.crew || '';
+  if(document.getElementById('job-status')) document.getElementById('job-status').value = j.status || 'Scheduled';
   document.getElementById('job-status').value = j.status || 'Scheduled';
   document.getElementById('job-invoice-ref').value = j.invoiceRef || '';
   costLines = j.costBreakdown || [];
@@ -1866,7 +1869,8 @@ function ganttNext(){ganttOffset++;renderGantt();}
 
 function renderGantt(){
   const el=document.getElementById('gantt-chart');
-  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
+  var cf=document.getElementById('crew-filter');var crewF=cf?cf.value:'';
+  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate&&(!crewF||!j.crew||j.crew===crewF));
   if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Work Schedule.</div>';return;}
   const sorted=[...jobs].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   const today=new Date();
@@ -1933,7 +1937,7 @@ function renderGantt(){
     const barL=clampStart*dayW;
     const barW=Math.max(dayW*2,(clampEnd-clampStart+1)*dayW);
     html+='<div style="position:relative;height:44px;width:'+trackW+'px;display:flex;align-items:center">';
-    html+='<div style="position:absolute;left:'+barL+'px;width:'+barW+'px;height:26px;border-radius:6px;background:'+color+';display:flex;align-items:center;justify-content:center;font-size:'+(isMobile?'9':'11')+'px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;cursor:default;box-shadow:0 2px 6px rgba(0,0,0,0.15)" title="'+j.name+': '+fmt(s)+' - '+fmt(e)+' ('+dur+' days)">';
+    html+='<div style="position:absolute;left:'+barL+'px;width:'+barW+'px;height:26px;border-radius:6px;background:'+color+';display:flex;align-items:center;justify-content:flex-start;overflow:hidden;text-overflow:ellipsis;font-size:'+(isMobile?'9':'11')+'px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;cursor:default;box-shadow:0 2px 6px rgba(0,0,0,0.15)" title="'+j.name+': '+fmt(s)+' - '+fmt(e)+' ('+dur+' days)">';
     html+=(barW>80?j.name:dur+'d');
     html+='</div></div></div>';
   });
