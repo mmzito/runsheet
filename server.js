@@ -917,7 +917,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
       </div>
       <div id="schedule-container" style="display:none">
         <div class="card gantt-colors">
-          <div class="card-hdr"><span class="card-title">Work Schedule</span><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
+          <div class="card-hdr"><span class="card-title">Work Schedule</span><select id="crew-filter" onchange="renderGantt()" style="padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:var(--dark);color:var(--text);font-size:12px;margin-left:10px"><option value="">All Crews</option><option value="Brandon">Brandon</option><option value="Marc">Marc</option></select><div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)"><span>◀</span><button class="btn btn-outline" onclick="ganttPrev()" style="font-size:11px;padding:3px 8px">← Earlier</button><button class="btn btn-outline" onclick="ganttNext()" style="font-size:11px;padding:3px 8px">Later →</button><span>▶</span></div></div>
           <div class="card-body" style="padding:0">
             <div class="gantt-wrap" id="gantt-scroll">
               <div class="gantt" id="gantt-chart"></div>
@@ -962,6 +962,7 @@ tr:hover td{background:#222222}tr:last-child td{border-bottom:none}
     <div class="modal-hdr"><span class="modal-title">Add Job to Pipeline</span><button class="modal-close" onclick="closeModal('job-modal')">×</button></div>
     <div class="modal-body">
       <div class="form-row"><div class="form-field"><label>Job Name</label><input type="text" id="job-name"></div><div class="form-field"><label>Client / Council</label><input type="text" id="job-client"></div></div>
+      <div class="form-row"><div class="form-field"><label>Crew</label><select id="job-crew"><option value="">All / Unassigned</option><option value="Brandon">Brandon's Crew</option><option value="Marc">Marc's Crew</option></select></div><div class="form-field"></div></div>
       <div class="form-row"><div class="form-field"><label>Work Start</label><input type="date" id="job-start"></div><div class="form-field"><label>Work End</label><input type="date" id="job-end"></div></div>
       <div class="form-row"><div class="form-field"><label>Revenue (ex-GST) $</label><input type="number" id="job-rev" oninput="previewJob()"></div><div class="form-field"><label>Direct Costs (ex-GST) $</label><input type="number" id="job-costs" oninput="previewJob()"></div></div>
       <div class="form-row"><div class="form-field"><label>Job Status</label><select id="job-status"><option value="Scheduled">Scheduled</option><option value="In Progress">In Progress</option><option value="Complete">Complete</option><option value="Invoiced">Invoiced</option></select></div><div class="form-field"><label>Xero Invoice Ref (if invoiced)</label><input type="text" id="job-invoice-ref" placeholder="e.g. INV20260025"></div></div>
@@ -1661,19 +1662,19 @@ function getATOBASOutflows() {
 function loadDemoJobs() {
   if (!IS_DEMO || D.jobs.length > 0) return;
   D.jobs = [
-    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
-    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
-    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31',status:'In Progress'},
-    {id:'j4',name:'Miller St Epping',client:'Little Rock',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
-    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j1',name:'Mackey St Lalor',client:'Little Rock',crew:'Brandon',startDate:'2026-06-01',endDate:'2026-06-12',revenue:16123,costs:12709,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j2',name:'Charnfield Crt Thomastown',client:'Little Rock',crew:'Brandon',startDate:'2026-06-02',endDate:'2026-06-20',revenue:46872,costs:33541,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
+    {id:'j3',name:'Wirildra Cl Thomastown',client:'Little Rock',crew:'Marc',startDate:'2026-06-09',endDate:'2026-06-27',revenue:44798,costs:32974,terms:'30eom',paymentDate:'2026-07-31',status:'In Progress'},
+    {id:'j4',name:'Miller St Epping',client:'Little Rock',crew:'Marc',startDate:'2026-06-16',endDate:'2026-07-04',revenue:34788,costs:30189,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j5',name:'Darebin Creek Trail',client:'Metro (Cole Civil)',crew:'Brandon',startDate:'2026-06-02',endDate:'2026-06-20',revenue:126469,costs:82244,terms:'30eom',paymentDate:'2026-07-31',status:'Complete'},
     {id:'j6',name:'Vincent Dr South Morang',client:'Metro (Cole Civil)',startDate:'2026-06-23',endDate:'2026-06-27',revenue:17910,costs:10451,terms:'30eom',paymentDate:'2026-07-31'},
     {id:'j7',name:'Boyd Pl Mill Park',client:'Metro (Cole Civil)',startDate:'2026-06-16',endDate:'2026-06-20',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j8',name:'Civic Pde Altona',client:'Novacon',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
-    {id:'j9',name:'Oakdale Pl Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-07',endDate:'2026-07-18',revenue:28298,costs:23748,terms:'30eom',paymentDate:'2026-08-31'},
+    {id:'j8',name:'Civic Pde Altona',client:'Novacon',crew:'Marc',startDate:'2026-06-09',endDate:'2026-06-20',revenue:61136,costs:49419,terms:'30eom',paymentDate:'2026-07-31'},
+    {id:'j9',name:'Oakdale Pl Thomastown',client:'Metro (Cole Civil)',crew:'Brandon',startDate:'2026-07-07',endDate:'2026-07-18',revenue:28298,costs:23748,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j10',name:'Middle Crt Thomastown',client:'Metro (Cole Civil)',startDate:'2026-07-14',endDate:'2026-07-18',revenue:15015,costs:12119,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j11',name:'Scullin & Evatt Crt Mill Park',client:'Metro (Cole Civil)',startDate:'2026-07-21',endDate:'2026-07-25',revenue:16170,costs:12413,terms:'30eom',paymentDate:'2026-08-31'},
     {id:'j12',name:'Downey Dr Doreen',client:'Metro (Cole Civil)',startDate:'2026-07-28',endDate:'2026-08-08',revenue:31198,costs:29407,terms:'30eom',paymentDate:'2026-09-30'},
-    {id:'j13',name:'St Catherines Toorak',client:'Pana Group',startDate:'2026-07-14',endDate:'2026-07-25',revenue:53233,costs:38286,terms:'30eom',paymentDate:'2026-08-31'}
+    {id:'j13',name:'St Catherines Toorak',client:'Pana Group',crew:'Marc',startDate:'2026-07-14',endDate:'2026-07-25',revenue:53233,costs:38286,terms:'30eom',paymentDate:'2026-08-31'}
   ];
   localStorage.setItem('hs_jobs', JSON.stringify(D.jobs));
 }
@@ -1682,16 +1683,21 @@ function renderJobs() {
   if (D.jobs.length === 0 && IS_DEMO) loadDemoJobs();
   const el=document.getElementById('jobs-content');
   if(D.jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">No jobs yet. Add upcoming jobs to see payment timing in the forecast.</div>';return;}
+  const _today=new Date();_today.setHours(0,0,0,0);
+  // Split active vs completed
+  const activeIdx=[];const compIdx=[];
+  D.jobs.forEach((j,i)=>{const end=j.endDate?new Date(j.endDate):null;if(end&&end<_today&&(j.status||'')!=='In Progress'){compIdx.push(i);}else{activeIdx.push(i);}});
   el.innerHTML=\`<div class="card"><div class="card-hdr"><span class="card-title">Job Pipeline</span></div><div class="tbl-wrap"><table>
     <thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Payment Date</th><th>Status</th><th></th></tr></thead>
-    <tbody>\${D.jobs.map((j,i)=>{const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
+    <tbody>\${activeIdx.map(i=>{const j=D.jobs[i];const rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0,gapDays=j.paymentDate&&j.endDate?Math.ceil((new Date(j.paymentDate)-new Date(j.endDate))/86400000):null,isLoss=parseFloat(margin)<0;
     return\`<tr><td><b>\${j.name}</b></td><td>\${j.client}</td><td style="color:var(--accent);font-weight:700">\${fc(rev)}</td><td style="color:var(--danger)">\${fc(costs)}</td>
     <td style="font-weight:700;color:\${isLoss?'var(--danger)':parseFloat(margin)>=20?'var(--accent)':'var(--amber)'}">\${margin}%</td>
     <td style="font-size:12px">\${j.paymentDate||'—'}</td>
     <td style="font-weight:700;color:\${gapDays&&gapDays>45?'var(--danger)':'inherit'}">\${gapDays?gapDays+' days'+(gapDays>45?' (long gap)':''):'—'}</td>
     <td><span class="badge \${isLoss?'br':parseFloat(margin)>=20?'bg':'ba'}">\${isLoss?'Loss':parseFloat(margin)>=20?'On Target':'Below'}</span></td>
     <td style="white-space:nowrap"><button class="btn btn-outline" onclick="editJob(\${i})" style="font-size:11px;padding:4px 8px;margin-right:4px">Edit</button><button class="btn btn-outline" onclick="deleteJob(\${i})" style="font-size:11px;padding:4px 8px">✕</button></td></tr>\`;}).join('')}
-    </tbody></table></div></div>\`;
+    </tbody></table></div></div>
+    \${compIdx.length>0?'<div class="card" style="margin-top:18px"><div class="card-hdr"><span class="card-title">Completed Jobs</span><span style="font-size:11px;color:var(--muted)">'+compIdx.length+' jobs</span></div><div class="tbl-wrap"><table><thead><tr><th>Job</th><th>Client</th><th>Revenue</th><th>Costs</th><th>Margin</th><th>Status</th><th></th></tr></thead><tbody>'+compIdx.map(function(i){var j=D.jobs[i];var rev=parseFloat(j.revenue)||0,costs=parseFloat(j.costs)||0,margin=rev>0?((rev-costs)/rev*100).toFixed(1):0;var st=j.status||'Complete';return '<tr style="opacity:0.5"><td><b>'+j.name+'</b></td><td>'+j.client+'</td><td>'+fc(rev)+'</td><td>'+fc(costs)+'</td><td>'+margin+'%</td><td><span class="badge bg">'+st+'</span></td><td><button class="btn btn-outline" onclick="deleteJob('+i+')" style="font-size:11px;padding:4px 8px">\u2715</button></td></tr>';}).join('')+'</tbody></table></div></div>':''}`;
 }
 
 function previewJob() {
@@ -1727,6 +1733,7 @@ function saveJob() {
   const j={id:'j'+Date.now(),name:document.getElementById('job-name').value,client:document.getElementById('job-client').value,
     startDate:document.getElementById('job-start').value,endDate,revenue:document.getElementById('job-rev').value,
     costs:document.getElementById('job-costs').value,terms,paymentDate,costBreakdown:[...costLines],
+    crew:document.getElementById('job-crew').value||'',
     status:document.getElementById('job-status').value||'Scheduled',
     invoiceRef:document.getElementById('job-invoice-ref').value||''};
   if(!j.name||!j.revenue){alert('Enter job name and revenue');return;}
@@ -1740,6 +1747,7 @@ function editJob(i) {
   if (!j) return;
   document.getElementById('job-name').value = j.name || '';
   document.getElementById('job-client').value = j.client || '';
+  if(document.getElementById('job-crew')) document.getElementById('job-crew').value = j.crew || '';
   document.getElementById('job-start').value = j.startDate || '';
   document.getElementById('job-end').value = j.endDate || '';
   document.getElementById('job-rev').value = j.revenue || '';
@@ -1776,6 +1784,7 @@ function saveJobEdit(i) {
     costs: document.getElementById('job-costs').value,
     terms, paymentDate,
     costBreakdown: [...costLines],
+    crew: document.getElementById('job-crew').value || '',
     status: document.getElementById('job-status').value || 'Scheduled',
     invoiceRef: document.getElementById('job-invoice-ref').value || ''
   };
@@ -1829,15 +1838,17 @@ function ganttNext(){ganttOffset++;renderGantt();}
 
 function renderGantt(){
   const el=document.getElementById('gantt-chart');
-  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate);
+  const cf=document.getElementById('crew-filter');const crewF=cf?cf.value:'';
+  const jobs=D.jobs.filter(j=>j.startDate&&j.endDate&&(!crewF||!j.crew||j.crew===crewF));
   if(jobs.length===0){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted)">Add jobs with start and end dates to see the Work Schedule.</div>';return;}
   const sorted=[...jobs].sort((a,b)=>new Date(a.startDate)-new Date(b.startDate));
   const today=new Date();
   today.setHours(0,0,0,0);
   // View window: 3 months from base, scrollable
-  const baseMonth=new Date(today.getFullYear(),today.getMonth()+ganttOffset,1);
-  const viewStart=new Date(baseMonth.getFullYear(),baseMonth.getMonth(),1);
-  const viewEnd=new Date(baseMonth.getFullYear(),baseMonth.getMonth()+3,0);
+  // Start from this week's Monday
+  const thisMonday=new Date(today);thisMonday.setDate(today.getDate()-((today.getDay()+6)%7));
+  const viewStart=new Date(thisMonday);viewStart.setDate(viewStart.getDate()+ganttOffset*21);
+  const viewEnd=new Date(viewStart);viewEnd.setDate(viewEnd.getDate()+12*7);
   const totalDays=Math.ceil((viewEnd-viewStart)/86400000)+1;
   const isMobile=window.innerWidth<=768;
   const dayW=isMobile?14:Math.max(18,Math.min(40,900/totalDays));
@@ -1884,7 +1895,7 @@ function renderGantt(){
     const fmt=d=>d.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
     html+='<div style="display:flex;align-items:center;border-bottom:1px solid var(--border);min-height:44px">';
     html+='<div style="width:'+labelW+'px;flex-shrink:0;padding:8px 12px;font-size:13px;font-weight:600;color:var(--text);border-right:1px solid var(--border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">';
-    html+=j.name+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
+    html+=j.name+(j.crew?' <span style="font-size:9px;opacity:0.7">['+j.crew+']</span>':'')+(j.client?'<div style="font-size:11px;font-weight:400;color:var(--muted)">'+j.client+'</div>':'');
     html+='</div>';
     // Skip if completely outside view
     if(offEnd<0||offStart>totalDays){
