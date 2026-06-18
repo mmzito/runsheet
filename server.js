@@ -585,11 +585,11 @@ app.get('/debug-session', (req, res) => {
 
 const fs = require('fs');
 const path = require('path');
-const DATA_DIR = path.join(__dirname, 'data');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, {recursive: true});
+const DATA_DIR = path.join('/tmp', 'headstart-data');
+try { if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, {recursive: true}); } catch(e) { console.log('Data dir warning:', e.message); }
 function getDataPath(tid) { return path.join(DATA_DIR, (tid||'default').replace(/[^a-zA-Z0-9-]/g,'_')+'.json'); }
 function loadUD(tid) { try{return JSON.parse(fs.readFileSync(getDataPath(tid),'utf8'));}catch(e){return {jobs:[],debits:[],financed:[],settings:{}};} }
-function saveUD(tid,d) { fs.writeFileSync(getDataPath(tid),JSON.stringify(d,null,2)); }
+function saveUD(tid,d) { try { fs.writeFileSync(getDataPath(tid),JSON.stringify(d,null,2)); } catch(e) { console.log('Save error:', e.message); } }
 app.post('/api/data/save', requireAuth, express.json(), (req,res) => { try{saveUD(req.session.activeTenantId||'default',req.body);res.json({success:true});}catch(e){res.status(500).json({error:e.message});} });
 app.get('/api/data/load', requireAuth, (req,res) => { try{res.json(loadUD(req.session.activeTenantId||'default'));}catch(e){res.status(500).json({error:e.message});} });
 app.post('/api/data/save-demo', express.json(), (req,res) => { try{saveUD('demo',req.body);res.json({success:true});}catch(e){res.status(500).json({error:e.message});} });
