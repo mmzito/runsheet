@@ -595,6 +595,648 @@ app.get('/api/data/load', requireAuth, (req,res) => { try{res.json(loadUD(req.se
 app.post('/api/data/save-demo', express.json(), (req,res) => { try{saveUD('demo',req.body);res.json({success:true});}catch(e){res.status(500).json({error:e.message});} });
 app.get('/api/data/load-demo', (req,res) => { try{res.json(loadUD('demo'));}catch(e){res.status(500).json({error:e.message});} });
 
+app.get('/cycle', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>My Cycle Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --winter: #5b7fa6;
+    --spring: #7aab6e;
+    --summer: #e8a838;
+    --autumn: #c4704a;
+    --bg: #f7f5f2;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #888;
+    --border: #e8e4df;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  h1 span { font-size: 12px; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+  /* Phase card */
+  .phase-card {
+    border-radius: 16px;
+    padding: 24px 20px 20px;
+    margin-bottom: 16px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .phase-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+  .phase-season {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    opacity: 0.8;
+    margin-bottom: 4px;
+  }
+  .phase-name {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .phase-days {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 16px;
+  }
+  .phase-progress {
+    background: rgba(255,255,255,0.25);
+    border-radius: 100px;
+    height: 6px;
+    margin-bottom: 6px;
+  }
+  .phase-progress-fill {
+    background: white;
+    border-radius: 100px;
+    height: 6px;
+    transition: width 0.3s;
+  }
+  .phase-progress-label {
+    font-size: 11px;
+    opacity: 0.75;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Strategy cards */
+  .cards-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .info-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+  }
+  .info-card.full { grid-column: 1 / -1; }
+  .info-card h3 {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .info-card p {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .battery {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .battery-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--border);
+  }
+  .battery-dot.on { background: var(--phase-color); }
+
+  /* Calendar */
+  .calendar-section {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .calendar-section h2 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    text-align: center;
+  }
+  .cal-day-header {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 2px 0;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: default;
+    position: relative;
+  }
+  .cal-day.today {
+    font-weight: 800;
+    ring: 2px solid white;
+    box-shadow: 0 0 0 2px white, 0 0 0 3px var(--text);
+  }
+  .cal-day.holiday {
+    outline: 2px dashed #e8a838;
+    outline-offset: -2px;
+  }
+  .cal-day .holiday-dot {
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--summer);
+    position: absolute;
+    bottom: 2px;
+  }
+  .cal-day.other-month { opacity: 0.25; }
+  .cal-day.winter { background: rgba(91,127,166,0.18); color: var(--winter); }
+  .cal-day.spring { background: rgba(122,171,110,0.18); color: var(--spring); }
+  .cal-day.summer { background: rgba(232,168,56,0.22); color: var(--summer); }
+  .cal-day.autumn { background: rgba(196,112,74,0.18); color: var(--autumn); }
+
+  /* Phase legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  /* School holidays */
+  .holiday-list {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .holiday-list h2 {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .holiday-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .holiday-item:last-child { border-bottom: none; }
+  .holiday-item .name { font-weight: 600; }
+  .holiday-item .dates { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .holiday-item .phase-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Cheat sheet / print */
+  .print-btn {
+    background: var(--text);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    margin-bottom: 16px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Settings */
+  .settings {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .settings h2 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .settings label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .settings input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .settings button {
+    background: var(--text);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Print styles */
+  @media print {
+    body { background: white; padding: 20px; max-width: 100%; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .phase-card { color: black !important; background: #f0f0f0 !important; }
+  }
+  .print-only { display: none; }
+</style>
+</head>
+<body>
+
+<h1>My Cycle Planner <span id="today-date"></span></h1>
+
+<!-- Current Phase Card -->
+<div class="phase-card" id="phase-card">
+  <div class="phase-season" id="phase-season"></div>
+  <div class="phase-name" id="phase-name"></div>
+  <div class="phase-days" id="phase-days"></div>
+  <div class="phase-progress"><div class="phase-progress-fill" id="phase-bar"></div></div>
+  <div class="phase-progress-label"><span id="progress-start"></span><span id="progress-end"></span></div>
+</div>
+
+<!-- Strategy Cards -->
+<div class="cards-row">
+  <div class="info-card">
+    <h3>Work Strategy</h3>
+    <p id="card-work"></p>
+  </div>
+  <div class="info-card">
+    <h3>Home & Family</h3>
+    <p id="card-home"></p>
+  </div>
+</div>
+<div class="cards-row">
+  <div class="info-card">
+    <h3>Social Battery</h3>
+    <p id="card-social"></p>
+    <div class="battery" id="battery-dots"></div>
+  </div>
+  <div class="info-card">
+    <h3>Energy & Body</h3>
+    <p id="card-body"></p>
+  </div>
+</div>
+<div class="cards-row">
+  <div class="info-card full">
+    <h3>Next Phase</h3>
+    <p id="card-next"></p>
+  </div>
+</div>
+
+<!-- Monthly Calendar -->
+<div class="calendar-section">
+  <h2 id="cal-title"></h2>
+  <div class="cal-grid" id="cal-grid"></div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--winter)"></div> Winter (Menstrual)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--spring)"></div> Spring (Follicular)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--summer)"></div> Summer (Ovulatory)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--autumn)"></div> Autumn (Luteal)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--summer);outline:1px dashed var(--summer);outline-offset:1px;"></div> School Holiday</div>
+  </div>
+</div>
+
+<!-- Upcoming School Holidays -->
+<div class="holiday-list">
+  <h2>Upcoming School Holidays</h2>
+  <div id="holiday-list"></div>
+</div>
+
+<!-- Print Button -->
+<button class="print-btn no-print" onclick="window.print()">Print Cheat Sheet</button>
+
+<!-- Settings -->
+<div class="settings no-print">
+  <h2>Update Cycle Start</h2>
+  <label>Day 1 of your last period</label>
+  <input type="date" id="day1-input">
+  <button onclick="saveDay1()">Save</button>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const CYCLE_LENGTH = 28;
+
+// Victoria School Holidays 2025–2026
+const SCHOOL_HOLIDAYS = [
+  { name: 'Term 2 holidays', start: '2026-06-27', end: '2026-07-12' },
+  { name: 'Term 3 holidays', start: '2026-09-19', end: '2026-10-04' },
+  { name: 'Term 4 holidays', start: '2026-12-19', end: '2027-01-27' },
+  { name: 'Term 1 2027 holidays', start: '2027-03-27', end: '2027-04-11' },
+];
+
+const PHASES = [
+  {
+    name: 'Menstrual', season: 'Winter', days: [1,5],
+    color: '#5b7fa6',
+    work: 'Solo deep-work & analysis. Avoid high-stakes meetings. Trust your intuition.',
+    home: 'Minimal chores. Outsource cooking. Rest is your priority.',
+    social: 'Very low. Protect your evenings. Say no to non-urgent plans.',
+    body: 'Low energy, introspective. Possible cramping & bloating. Rest guilt-free.',
+    battery: 1,
+    css: 'winter'
+  },
+  {
+    name: 'Follicular', season: 'Spring', days: [6,13],
+    color: '#7aab6e',
+    work: 'Brainstorm, launch new projects, learn new things. You\\'re mentally sharp.',
+    home: 'Tackle organisation, plan ahead, try new recipes.',
+    social: 'Recharging. Fill calendar with casual catch-ups and coffee dates.',
+    body: 'Energy & mood rising. Brain fog clears. Creative & optimistic.',
+    battery: 3,
+    css: 'spring'
+  },
+  {
+    name: 'Ovulatory', season: 'Summer', days: [14,17],
+    color: '#e8a838',
+    work: 'Public speaking, pitching, leading meetings, asking for things. Peak confidence.',
+    home: 'High-energy tasks. Host gatherings. Say yes to busy social commitments.',
+    social: 'Maximum. Best week for events, nights out, and date nights.',
+    body: 'Peak energy & confidence. Your highest-performance days of the month.',
+    battery: 5,
+    css: 'summer'
+  },
+  {
+    name: 'Luteal', season: 'Autumn', days: [18,28],
+    color: '#c4704a',
+    work: 'Days 18–22: wrap up projects. Days 23–28: admin, inbox, proofreading.',
+    home: 'Nesting urge. Deep-clean, meal-prep, stock the pantry for your winter phase.',
+    social: 'Winding down. Cosy nights in, early bedtimes, declining exhausting events.',
+    body: 'Attention to detail up, tolerance for stress down. Honour the fatigue.',
+    battery: 2,
+    css: 'autumn'
+  }
+];
+
+// ─── LOGIC ───────────────────────────────────────────────────────────────────
+
+function getDay1() {
+  return localStorage.getItem('cycle_day1') || '2026-06-04';
+}
+
+function saveDay1() {
+  const val = document.getElementById('day1-input').value;
+  if (val) { localStorage.setItem('cycle_day1', val); render(); }
+}
+
+function getCycleDay(day1str) {
+  const day1 = new Date(day1str);
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  day1.setHours(0,0,0,0);
+  let diff = Math.floor((today - day1) / 86400000);
+  diff = ((diff % CYCLE_LENGTH) + CYCLE_LENGTH) % CYCLE_LENGTH;
+  return diff + 1; // 1-indexed
+}
+
+function getPhase(cycleDay) {
+  for (const p of PHASES) {
+    if (cycleDay >= p.days[0] && cycleDay <= p.days[1]) return p;
+  }
+  return PHASES[3]; // fallback luteal
+}
+
+function getPhaseForDay(cycleDay) {
+  const d = ((cycleDay - 1 + CYCLE_LENGTH) % CYCLE_LENGTH) + 1;
+  return getPhase(d);
+}
+
+function getCycleDayForDate(day1str, date) {
+  const day1 = new Date(day1str);
+  const d = new Date(date);
+  day1.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  let diff = Math.floor((d - day1) / 86400000);
+  diff = ((diff % CYCLE_LENGTH) + CYCLE_LENGTH) % CYCLE_LENGTH;
+  return diff + 1;
+}
+
+function isSchoolHoliday(dateStr) {
+  const d = new Date(dateStr);
+  for (const h of SCHOOL_HOLIDAYS) {
+    const s = new Date(h.start), e = new Date(h.end);
+    if (d >= s && d <= e) return h.name;
+  }
+  return null;
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + n);
+  return d.toISOString().split('T')[0];
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+
+function render() {
+  const day1 = getDay1();
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const cycleDay = getCycleDay(day1);
+  const phase = getPhase(cycleDay);
+
+  // Header date
+  document.getElementById('today-date').textContent = today.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long' });
+
+  // Phase card
+  const card = document.getElementById('phase-card');
+  card.style.background = \`linear-gradient(135deg, \${phase.color}, \${phase.color}cc)\`;
+  document.getElementById('phase-season').textContent = \`☀️ \${phase.season}\`.replace('☀️ Winter','❄️ Winter').replace('☀️ Spring','🌱 Spring').replace('☀️ Summer','☀️ Summer').replace('☀️ Autumn','🍂 Autumn');
+  document.getElementById('phase-name').textContent = phase.name + ' Phase';
+  const daysLeft = phase.days[1] - cycleDay + 1;
+  document.getElementById('phase-days').textContent = \`Day \${cycleDay} of 28 · \${daysLeft} day\${daysLeft !== 1 ? 's' : ''} remaining in this phase\`;
+
+  // Progress bar
+  const phaseLen = phase.days[1] - phase.days[0] + 1;
+  const pct = Math.round(((cycleDay - phase.days[0]) / phaseLen) * 100);
+  document.getElementById('phase-bar').style.width = Math.max(4, pct) + '%';
+  document.getElementById('progress-start').textContent = 'Day ' + phase.days[0];
+  document.getElementById('progress-end').textContent = 'Day ' + phase.days[1];
+
+  // Strategy cards
+  document.getElementById('card-work').textContent = phase.work;
+  document.getElementById('card-home').textContent = phase.home;
+  document.getElementById('card-social').textContent = phase.social;
+  document.getElementById('card-body').textContent = phase.body;
+
+  // Battery dots
+  const battEl = document.getElementById('battery-dots');
+  battEl.style.setProperty('--phase-color', phase.color);
+  battEl.innerHTML = '';
+  for (let i = 1; i <= 5; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'battery-dot' + (i <= phase.battery ? ' on' : '');
+    dot.style.background = i <= phase.battery ? phase.color : '';
+    battEl.appendChild(dot);
+  }
+
+  // Next phase
+  const nextPhaseIdx = (PHASES.indexOf(phase) + 1) % PHASES.length;
+  const nextPhase = PHASES[nextPhaseIdx];
+  document.getElementById('card-next').textContent = \`\${nextPhase.season} (\${nextPhase.name}) starts in \${daysLeft} day\${daysLeft !== 1 ? 's' : ''} — Day \${nextPhase.days[0]}. \${nextPhase.work.split('.')[0]}.\`;
+
+  // Calendar
+  renderCalendar(day1, today, todayStr);
+
+  // School holidays
+  renderHolidays(day1);
+
+  // Set date input
+  document.getElementById('day1-input').value = day1;
+}
+
+function renderCalendar(day1, today, todayStr) {
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-title').textContent = monthNames[month] + ' ' + year;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+
+  // Day headers
+  ['M','T','W','T','F','S','S'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-header';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = startDow === 0 ? 6 : startDow - 1; // Mon=0
+
+  // Blanks
+  for (let i = 0; i < startDow; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day other-month';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= lastDay.getDate(); d++) {
+    const dateStr = \`\${year}-\${String(month+1).padStart(2,'0')}-\${String(d).padStart(2,'0')}\`;
+    const cycleD = getCycleDayForDate(day1, dateStr);
+    const phase = getPhase(cycleD);
+    const holiday = isSchoolHoliday(dateStr);
+
+    const el = document.createElement('div');
+    el.className = 'cal-day ' + phase.css + (dateStr === todayStr ? ' today' : '') + (holiday ? ' holiday' : '');
+    el.textContent = d;
+
+    if (holiday) {
+      const dot = document.createElement('div');
+      dot.className = 'holiday-dot';
+      el.appendChild(dot);
+    }
+
+    if (dateStr === todayStr) el.title = 'Today — Day ' + cycleD;
+    grid.appendChild(el);
+  }
+}
+
+function renderHolidays(day1) {
+  const container = document.getElementById('holiday-list');
+  container.innerHTML = '';
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const upcoming = SCHOOL_HOLIDAYS.filter(h => new Date(h.end) >= today).slice(0,4);
+
+  upcoming.forEach(h => {
+    const midDate = addDays(h.start, Math.floor((new Date(h.end) - new Date(h.start)) / 86400000 / 2));
+    const cycleD = getCycleDayForDate(day1, midDate);
+    const phase = getPhase(cycleD);
+
+    const el = document.createElement('div');
+    el.className = 'holiday-item';
+    el.innerHTML = \`
+      <div>
+        <div class="name">\${h.name}</div>
+        <div class="dates">\${formatDate(h.start)} – \${formatDate(h.end)}</div>
+      </div>
+      <div class="phase-tag" style="background:\${phase.color}22;color:\${phase.color}">\${phase.season}</div>
+    \`;
+    container.appendChild(el);
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+
+</body>
+</html>
+`);
+});
+
 app.get('/app', async (req, res) => {
   const isDemo = req.query.demo === 'true';
   if (!isDemo && !req.session.tokenSet) return res.redirect('/connect');
