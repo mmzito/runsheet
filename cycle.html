@@ -486,6 +486,14 @@
 </div>
 
 <script>
+// Clear any bad data from previous broken version
+(function() {
+  var d = localStorage.getItem('cycle_day1');
+  if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    localStorage.removeItem('cycle_day1');
+  }
+})();
+
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
 const CYCLE_LENGTH = 28;
@@ -544,7 +552,9 @@ const PHASES = [
 // ─── LOGIC ───────────────────────────────────────────────────────────────────
 
 function getDay1() {
-  return localStorage.getItem('cycle_day1') || '2026-06-04';
+  var stored = localStorage.getItem('cycle_day1');
+  if (stored && /^\d{4}-\d{2}-\d{2}$/.test(stored)) return stored;
+  return '2026-06-04';
 }
 
 function saveDay1() {
@@ -947,7 +957,11 @@ function closeModal(e) {
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-render();
+try {
+  render();
+} catch(e) {
+  document.body.innerHTML = '<div style="padding:30px;font-family:sans-serif"><h2>Error loading planner</h2><p>' + e.message + '</p><p><a href="javascript:localStorage.clear();location.reload()">Tap here to reset and reload</a></p></div>';
+}
 </script>
 
 
